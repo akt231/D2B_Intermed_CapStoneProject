@@ -1,4 +1,4 @@
-from  argparse import ArgumentParser
+import argparse
 import os
 from utils.helperfnc import init_client, get_ticker
 
@@ -11,10 +11,10 @@ if __name__ == '__main__':
     #initialise finhub client
     finnhub_client = init_client(token_finnhubio)
 
-    parser = ArgumentParser(prog="main.py",
+    parser = argparse.ArgumentParser(prog="main.py",
                             usage = None,
                             description="List of Tickers from Finnhub search",
-                            formatter_class=<class "argparse.ArgumentDefaultsHelpFormatter">,
+                            formatter_class= argparse.ArgumentDefaultsHelpFormatter,
                              conflict_handler = "error",
                             add_help = True
                             )
