@@ -120,7 +120,6 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-ingestion/.env
 d2bcap/
 .env
 .venv
