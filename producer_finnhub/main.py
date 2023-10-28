@@ -2,15 +2,15 @@ import argparse
 import os
 from utils.helperfnc import init_client, get_ticker
 
+
+#getting tokens from .env file
 from dotenv import load_dotenv
 load_dotenv()
 token_finnhubio = os.getenv('token_finnhubio')
 
 if __name__ == '__main__':
     #initialise finhub client
-    #finnhub_client = init_client('') #uncomment this, insert token and comment following line to run locally
-    #finnhub_client = init_client(os.environ['FINNHUB_API_TOKEN'])
-    finnhub_client = init_client(token_finnhubio) #uncomment this, insert token and comment following line to run locally
+    finnhub_client = init_client(token_finnhubio)
 
 #    parser = argparse.ArgumentParser(description="Get list of tickers based on Finnhub search",
 #                                     prog="main.py",
