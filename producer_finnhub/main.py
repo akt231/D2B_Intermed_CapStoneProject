@@ -47,9 +47,15 @@ def on_open(ws):
 if __name__ == "__main__":
     #list stored variables
     print('Environment:')
+    keylst =os.environ.keys()
+    no_d2b_tokens = 0
     for k, v in os.environ.items():
-        if k
-        print(f'{k}={v}')
+        if 'd2b' in k.lower():
+            print(f'{k}={v}')
+        else:
+            no_d2b_tokens += 1
+    if no_d2b_tokens > 0:
+        print('no env tokens set')
 
     finnhub_client = init_client(d2b_token_finnhubio)
     producer = load_producer(f"{d2b_kafka_server}:{d2b_kafka_port}")
