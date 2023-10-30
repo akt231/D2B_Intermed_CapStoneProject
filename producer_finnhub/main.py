@@ -3,7 +3,7 @@ import os
 import ast
 import websocket
 import json
-from utils.helperfnc import encode_avro, check_ticker, load_client, load_producer, load_avro_schema
+from utils.helperfnc import encode_avro, check_ticker, init_client, load_producer, load_avro_schema
 
 # getting tokens from .env file
 from dotenv import load_dotenv
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     for k, v in os.environ.items():
         print(f'{k}={v}')
 
-    finnhub_client = load_client(token_finnhubio)
+    finnhub_client = init_client(token_finnhubio)
     producer = load_producer(f"{kafka_server}:{kafka_port}")
     
     websocket.enableTrace(True)
