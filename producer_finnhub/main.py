@@ -36,13 +36,14 @@ def on_error(ws, error):
 def on_close(ws):
     print("=== socket closed ===")
 
-def on_open(ws):
+def on_open(ws, finnhub_client):
     for ticker in d2b_tickers_finnhubio:
         if(check_ticker(finnhub_client,ticker)==True):
+            print(f'running ticker {ticker} right now')
             ws.send(f'{"type":"subscribe","symbol":"{ticker}"}')
             print(f'Subscription for {ticker} succeeded')
         else:
-            print(f'Subscription for {ticker} failed - ticker not found')
+            print(f'Subscription for {ticker} failed - ticker not exist')
 
 if __name__ == "__main__":
     #list stored variables
@@ -61,7 +62,8 @@ if __name__ == "__main__":
     producer = load_producer(f"{d2b_kafka_server}:{d2b_kafka_port}")
     
     websocket.enableTrace(True)
-    ws = websocket.WebSocketApp(f"wss://ws.finnhub.io?token={d2b_token_finnhubio}",
+    socket_url = f"wss://ws.finnhub.io?token={d2b_token_finnhubio}"
+    ws = websocket.WebSocketApp(socket_url, 
                               on_message = on_message,
                               on_error = on_error,
                               on_close = on_close)
