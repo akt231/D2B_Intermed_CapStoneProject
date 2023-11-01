@@ -26,21 +26,28 @@ def on_message(ws, message):
             'data': message['data'],
             'type': message['type']
         }, 
-        load_avro_schema('schemas/schema_trades.avsc')
+        load_avro_schema('./producer_finnhub/schemas/schema_trades.avsc')
     )
     producer.send(d2b_kafka_topic_name, avro_message)
 
 def on_error(ws, error):
     print(error)
 
-def on_close(ws):
+def on_close(ws, close_status_code, close_msg):
     print("=== socket closed ===")
 
-def on_open(ws, finnhub_client):
+def on_open(ws):
+    #ws.send('{"type":"subscribe","symbol":"AAPL"}')
+    #ws.send('{"type":"subscribe","symbol":"AMZN"}')
+    #ws.send('{"type":"subscribe","symbol":"BINANCE:BTCUSDT"}')
+    #ws.send('{"type":"subscribe","symbol":"IC MARKETS:1"}')    
     for ticker in d2b_tickers_finnhubio:
-        if(check_ticker(finnhub_client,ticker)==True):
+        print(f'test for ticker: {ticker}')
+        print(f'ticker exist in xchange?: {check_ticker(finnhub_client,ticker)}')
+        if(check_ticker(finnhub_client,ticker)):
             print(f'running ticker {ticker} right now')
-            ws.send(f'{"type":"subscribe","symbol":"{ticker}"}')
+            ws.send(f'{{"type":"subscribe","symbol":"{ticker}"}}')
+            
             print(f'Subscription for {ticker} succeeded')
         else:
             print(f'Subscription for {ticker} failed - ticker not exist')
