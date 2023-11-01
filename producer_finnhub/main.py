@@ -21,12 +21,13 @@ d2b_kafka_topic_name = os.getenv('d2b_kafka_topic_name')
 def on_message(ws, message):
     print(message)
     message = json.loads(message)
+    loaded_schema = load_avro_schema('./producer_finnhub/schemas/schema_trades.avsc')
     avro_message = encode_avro(
         {
             'data': message['data'],
             'type': message['type']
         }, 
-        load_avro_schema('./producer_finnhub/schemas/schema_trades.avsc')
+        loaded_schema
     )
     producer.send(d2b_kafka_topic_name, avro_message)
 
