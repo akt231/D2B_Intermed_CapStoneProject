@@ -3,7 +3,7 @@ import os
 import ast
 import websocket
 import json
-from utils.helperfnc import encode_avro, check_ticker, init_client, load_producer, load_avro_schema
+from utils.helperfnc import encode_avro, check_ticker, init_client, init_producer, load_avro_schema
 
 # getting tokens from .env file
 from dotenv import load_dotenv
@@ -18,7 +18,7 @@ d2b_kafka_port = os.getenv('d2b_kafka_port')
 d2b_kafka_topic_name = os.getenv('d2b_kafka_topic_name')
 
 # websocket functions
-def on_message(ws, message):
+def on_message(ws, message, producer):
     print(message)
     message = json.loads(message)
     loaded_schema = load_avro_schema('./producer_finnhub/schemas/schema_trades.avsc')
@@ -37,7 +37,7 @@ def on_error(ws, error):
 def on_close(ws, close_status_code, close_msg):
     print("=== socket closed ===")
 
-def on_open(ws):
+def on_open(ws, finnhub_client):
     #ws.send('{"type":"subscribe","symbol":"AAPL"}')
     #ws.send('{"type":"subscribe","symbol":"AMZN"}')
     #ws.send('{"type":"subscribe","symbol":"BINANCE:BTCUSDT"}')
@@ -53,7 +53,7 @@ def on_open(ws):
         else:
             print(f'Subscription for {ticker} failed - ticker not exist')
 
-if __name__ == "__main__":
+def main(d2b_token_finnhubio, d2b_kafka_server, d2b_kafka_port):
     #list stored variables
     print('Environment:')
     keylst =os.environ.keys()
@@ -66,15 +66,24 @@ if __name__ == "__main__":
     if no_d2b_tokens > 0:
         print('no env tokens set')
 
+    # initialise finnhub client and kafka producer 
     finnhub_client = init_client(d2b_token_finnhubio)
-    producer = load_producer(f"{d2b_kafka_server}:{d2b_kafka_port}")
+    producer = init_producer(f"{d2b_kafka_server}:{d2b_kafka_port}")
     
+    # enable websocket trace
     websocket.enableTrace(True)
     socket_url = f"wss://ws.finnhub.io?token={d2b_token_finnhubio}"
+    
+    # initialise websocket connections
     ws = websocket.WebSocketApp(socket_url, 
                               on_message = on_message,
                               on_error = on_error,
                               on_close = on_close)
+    
+    # open websocket connections and make persistent
     ws.on_open = on_open
     ws.run_forever()
     
+    
+if __name__ == "__main__":
+    main()

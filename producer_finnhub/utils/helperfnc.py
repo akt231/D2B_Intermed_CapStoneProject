@@ -22,7 +22,7 @@ def check_ticker(finnhub_client,ticker):
     return False
 
 #setting up a Kafka connection
-def load_producer(kafka_server):
+def init_producer(kafka_server):
     return KafkaProducer(bootstrap_servers=kafka_server)
 
 
