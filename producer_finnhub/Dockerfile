@@ -1,6 +1,6 @@
 FROM python:3.9
 
-WORKDIR /d2bcapp_app
+WORKDIR /apps/app_d2b/intermediate/cap_project
 
 COPY . .
 
