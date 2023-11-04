@@ -5,6 +5,7 @@ import avro.schema
 import avro.io
 from kafka import KafkaProducer
 from kafka.errors import KafkaError
+import os
 
 #setting up Finnhub client connection to test if tickers specified in config exist
 def init_client(token_finnhubio):
@@ -37,3 +38,18 @@ def encode_avro(data, schema):
     encoder = avro.io.BinaryEncoder(bytes_writer)
     writer.write(data, encoder)
     return bytes_writer.getvalue()
+
+
+#print env variables
+def print_env(search_string):
+    #list stored variables
+    print('Environment:')
+    keylst =os.environ.keys()
+    tokens_exist = 0
+    for k, v in os.environ.items():
+        if search_string in k.lower():
+            print(f'{k}={v}')
+        else:
+            tokens_exist += 1
+    if tokens_exist > 0:
+        print('no env tokens set')

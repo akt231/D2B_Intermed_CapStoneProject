@@ -3,7 +3,7 @@ import os
 import ast
 import websocket
 import json
-from utils.helperfnc import encode_avro, check_ticker, init_client, init_producer, load_avro_schema
+from utils.helperfnc import print_env,  encode_avro, check_ticker, init_client, init_producer, load_avro_schema
 
 # getting tokens from .env file
 from dotenv import load_dotenv
@@ -38,10 +38,6 @@ def on_close(ws, close_status_code, close_msg):
     print("=== socket closed ===")
 
 def on_open(ws, finnhub_client):
-    #ws.send('{"type":"subscribe","symbol":"AAPL"}')
-    #ws.send('{"type":"subscribe","symbol":"AMZN"}')
-    #ws.send('{"type":"subscribe","symbol":"BINANCE:BTCUSDT"}')
-    #ws.send('{"type":"subscribe","symbol":"IC MARKETS:1"}')    
     for ticker in d2b_tickers_finnhubio:
         print(f'test for ticker: {ticker}')
         print(f'ticker exist in xchange?: {check_ticker(finnhub_client,ticker)}')
@@ -54,17 +50,8 @@ def on_open(ws, finnhub_client):
             print(f'Subscription for {ticker} failed - ticker not exist')
 
 def main(d2b_token_finnhubio, d2b_kafka_server, d2b_kafka_port):
-    #list stored variables
-    print('Environment:')
-    keylst =os.environ.keys()
-    no_d2b_tokens = 0
-    for k, v in os.environ.items():
-        if 'd2b' in k.lower():
-            print(f'{k}={v}')
-        else:
-            no_d2b_tokens += 1
-    if no_d2b_tokens > 0:
-        print('no env tokens set')
+    # list out all env variables containing 'd2b'string
+    print_env('d2b')
 
     # initialise finnhub client and kafka producer 
     finnhub_client = init_client(d2b_token_finnhubio)
