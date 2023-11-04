@@ -26,7 +26,6 @@ def check_ticker(finnhub_client,ticker):
 def init_producer(kafka_server):
     return KafkaProducer(bootstrap_servers=kafka_server)
 
-
 #parse Avro schema
 def load_avro_schema(schema_path):
     return avro.schema.parse(open(schema_path).read())
