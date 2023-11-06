@@ -1,98 +1,209 @@
-import logging
+# pyspark imports
+import pyspark.sql.functions as func
 from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType,StructField,FloatType,IntegerType,StringType
-from pyspark.sql.functions import from_json,col
+from pyspark.sql.avro.functions import from_avro, to_avro
+from pyspark.sql.types import StringType, TimestampType, IntegerType, BinaryType
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s:%(funcName)s:%(levelname)s:%(message)s')
-logger = logging.getLogger("spark_structured_streaming")
+# schema registry imports
+from confluent_kafka.schema_registry import SchemaRegistryClient
 
+# getting tokens from .env file
+from dotenv import load_dotenv
+load_dotenv()
 
-def create_spark_session():
-    """
-    Creates the Spark Session with suitable configs.
-    """
-    try:
-        # Spark session is established with cassandra and kafka jars. Suitable versions can be found in Maven repository.
-        spark = SparkSession \
-                .builder \
-                .appName("SparkStructuredStreaming") \
-                .config("spark.jars.packages", "com.datastax.spark:spark-cassandra-connector_2.12:3.0.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0") \
-                .config("spark.cassandra.connection.host", "cassandra") \
-                .config("spark.cassandra.connection.port","9042")\
-                .config("spark.cassandra.auth.username", "cassandra") \
-                .config("spark.cassandra.auth.password", "cassandra") \
-                .getOrCreate()
-        spark.sparkContext.setLogLevel("ERROR")
-        logging.info('Spark session created successfully')
-    except Exception:
-        logging.error("Couldn't create the spark session")
+# get kafka data from .env file
+d2b_kafka_server = os.getenv('d2b_kafka_server')
+d2b_kafka_port = os.getenv('d2b_kafka_port')
+d2b_kafka_topic_name = os.getenv('d2b_kafka_topic_name')
 
-    return spark
+kafka_url = "kafka-broker:29092"
+schema_registry_url = "http://schema-registry:8083"
+kafka_producer_topic = "wikimedia"
+kafka_analyzed_topic = "wikimedia.processed"
+schema_registry_subject = f"{kafka_producer_topic}-value"
+schema_registry_analyzed_data_subject = f"{kafka_analyzed_topic}-value"
 
+# Create a SparkSession (the config bit is only for Windows!)
+spark = SparkSession.builder.appName("wikimedia_consumer").getOrCreate()
 
-def create_initial_dataframe(spark_session):
-    """
-    Reads the streaming data and creates the initial dataframe accordingly.
-    """
-    try:
-        # Gets the streaming data from topic random_names
-        df = spark_session \
-              .readStream \
-              .format("kafka") \
-              .option("kafka.bootstrap.servers", "kafka1:19092,kafka2:19093,kafka3:19094") \
-              .option("subscribe", "random_names") \
-              .option("delimeter",",") \
-              .option("startingOffsets", "earliest") \
-              .load()
-        logging.info("Initial dataframe created successfully")
-    except Exception as e:
-        logging.warning(f"Initial dataframe couldn't be created due to exception: {e}")
+spark.sparkContext.setLogLevel("ERROR")
 
-    return df
+# UDF function
+binary_to_string_udf = func.udf(lambda x: str(int.from_bytes(x, byteorder='big')), StringType())
+# x->value, y->len
+int_to_binary_udf = func.udf(lambda value, byte_size: (value).to_bytes(byte_size, byteorder='big'), BinaryType())
 
+def get_schema_from_schema_registry(schema_registry_url, schema_registry_subject):
+    sr = SchemaRegistryClient({'url': schema_registry_url})
+    latest_version = sr.get_latest_version(schema_registry_subject)
 
-def create_final_dataframe(df, spark_session):
-    """
-    Modifies the initial dataframe, and creates the final dataframe.
-    """
-    schema = StructType([
-                StructField("full_name",StringType(),False),
-                StructField("gender",StringType(),False),
-                StructField("location",StringType(),False),
-                StructField("city",StringType(),False),
-                StructField("country",StringType(),False),
-                StructField("postcode",IntegerType(),False),
-                StructField("latitude",FloatType(),False),
-                StructField("longitude",FloatType(),False),
-                StructField("email",StringType(),False)
-            ])
+    return sr, latest_version
 
-    df = df.selectExpr("CAST(value AS STRING)").select(from_json(col("value"),schema).alias("data")).select("data.*")
-    print(df)
-    return df
+def spark_consumer():
+    wikimedia_df = spark \
+    .readStream\
+    .format("kafka")\
+    .option("kafka.bootstrap.servers", kafka_url)\
+    .option("subscribe", kafka_producer_topic)\
+    .option("startingOffsets", "earliest")\
+    .load()
+
+    wikimedia_df.printSchema()
+    # OUTPUT #
+    # root
+    # |-- key: binary (nullable = true)
+    # |-- value: binary (nullable = true)
+    # |-- topic: string (nullable = true)
+    # |-- partition: integer (nullable = true)
+    # |-- offset: long (nullable = true)
+    # |-- timestamp: timestamp (nullable = true)
+    # |-- timestampType: integer (nullable = true)
 
 
-def start_streaming(df):
-    """
-    Starts the streaming to table spark_streaming.random_names in cassandra
-    """
-    logging.info("Streaming is being started...")
-    my_query = (df.writeStream
-                  .format("org.apache.spark.sql.cassandra")
-                  .outputMode("append")
-                  .options(table="random_names", keyspace="spark_streaming")\
-                  .start())
+    # remove first 5 bytes from value
+    wikimedia_df = wikimedia_df.withColumn('fixedValue', func.expr("substring(value, 6, length(value)-5)"))
 
-    return my_query.awaitTermination()
+    #  get schema id from value
+    wikimedia_df = wikimedia_df.withColumn('valueSchemaId', binary_to_string_udf(func.expr("substring(value, 2, 4)")))
 
+    # get schema using subject name
+    _, latest_version_wikimedia = get_schema_from_schema_registry(schema_registry_url, schema_registry_subject)
 
-def write_streaming_data():
-    spark = create_spark_session()
-    df = create_initial_dataframe(spark)
-    df_final = create_final_dataframe(df, spark)
-    start_streaming(df_final)
+    # deserialize data 
+    fromAvroOptions = {"mode":"PERMISSIVE"}
+    decoded_output = wikimedia_df.select(
+        from_avro(
+            func.col("fixedValue"), latest_version_wikimedia.schema.schema_str, fromAvroOptions
+        )
+        .alias("wikimedia")
+    )
+    wikimedia_value_df = decoded_output.select("wikimedia.*")
+    # wikimedia_value_df.printSchema()
+    # OUTPUT #
+    # root
+    # |-- bot: boolean (nullable = true)
+    # |-- comment: string (nullable = true)
+    # |-- id: integer (nullable = true)
+    # |-- length: struct (nullable = true)
+    # |    |-- new: integer (nullable = true)
+    # |    |-- old: integer (nullable = true)
+    # |-- meta: struct (nullable = true)
+    # |    |-- domain: string (nullable = true)
+    # |    |-- dt: string (nullable = true)
+    # |    |-- id: string (nullable = true)
+    # |    |-- offset: long (nullable = true)
+    # |    |-- partition: integer (nullable = true)
+    # |    |-- request_id: string (nullable = true)
+    # |    |-- stream: string (nullable = true)
+    # |    |-- topic: string (nullable = true)
+    # |    |-- uri: string (nullable = true)
+    # |-- minor: boolean (nullable = true)
+    # |-- namespace: integer (nullable = true)
+    # |-- parsedcomment: string (nullable = true)
+    # |-- patrolled: boolean (nullable = true)
+    # |-- revision: struct (nullable = true)
+    # |    |-- new: integer (nullable = true)
+    # |    |-- old: integer (nullable = true)
+    # |-- schema: string (nullable = true)
+    # |-- server_name: string (nullable = true)
+    # |-- server_script_path: string (nullable = true)
+    # |-- server_url: string (nullable = true)
+    # |-- timestamp: integer (nullable = true)
+    # |-- title: string (nullable = true)
+    # |-- type: string (nullable = true)
+    # |-- user: string (nullable = true)
+    # |-- wiki: string (nullable = true)
 
+    # counting numbers of bots & humans requesting for edit
+    ## filter by type
+    ### timestamp column is of type int, convert it to timestamp as withWatermark accepts timestamp type column. you can create date column by using func.from_unixtime but the result is datetime with string type which is not accepted by withWatermark
+    wikimedia_value_df = wikimedia_value_df \
+        .filter(func.col("type") == "edit") \
+        .select("bot", func.col("timestamp").cast(TimestampType())) \
 
-if __name__ == '__main__':
-    write_streaming_data()
+    ## groupby bot & find count
+    wikimedia_value_df = wikimedia_value_df \
+        .withWatermark("timestamp", "60 seconds") \
+        .groupBy(
+            # window params -> timestamp, window interval, sliding interval
+            func.window(
+                func.col("timestamp"),
+                "60 seconds",
+                "30 seconds"
+            ),
+            func.col("bot")
+        ) \
+        .agg(func.count("bot").alias('counts')) \
+        # .orderBy(func.col("window").asc())
+
+    ## add request_by field
+    wikimedia_value_df = wikimedia_value_df.withColumn(
+        "requested_by", 
+        func.when(wikimedia_value_df.bot == True, "Bot")\
+        .when(wikimedia_value_df.bot == False, "Human")\
+        .otherwise("")
+    ) \
+    .select(
+        func.struct(
+            func.col("window.start").cast(StringType()).alias("start"), 
+            func.col("window.end").cast(StringType()).alias("end"), 
+        ).alias("window"),
+        "requested_by", 
+        "counts"
+    )
+    wikimedia_value_df.printSchema()
+    # OUTPUT #
+    # root
+    # |-- window: struct (nullable = true)
+    # |    |-- start: string (nullable = true)
+    # |    |-- end: string (nullable = true)
+    # |-- requested_by: string (nullable = false)
+    # |-- counts: long (nullable = false)
+
+    # write to sink(console)
+    ## trigger is used for batch interval
+    # wikimedia_value_df \
+    # .writeStream \
+    # .format("console") \
+    # .trigger(processingTime='1 second') \
+    # .outputMode("append") \
+    # .option("truncate", "false") \
+    # .start() \
+    # .awaitTermination()
+    # OUTPUT(complete) #
+    # +------------------------------------------+------------+------+
+    # |window                                    |requested_by|counts|
+    # +------------------------------------------+------------+------+
+    # |{2023-01-19 13:47:00, 2023-01-19 13:48:00}|Bot         |218   |
+    # |{2023-01-19 13:47:00, 2023-01-19 13:48:00}|Human       |786   |
+    # +------------------------------------------+------------+------+
+
+    # get schema for analyzed data
+    _, latest_version_analyzed_data = get_schema_from_schema_registry(schema_registry_url, schema_registry_analyzed_data_subject)
+
+    # convert dataframe to binary data
+    wikimedia_value_df = wikimedia_value_df \
+    .select(to_avro(func.struct(
+        func.col("window"),
+        func.col("requested_by"),
+        func.col("counts")
+    ), latest_version_analyzed_data.schema.schema_str).alias("value"))
+
+    # add magicbyte & schemaId to binary data
+    magicByteBinary = int_to_binary_udf(func.lit(0), func.lit(1))
+    schemaIdBinary = int_to_binary_udf(func.lit(latest_version_analyzed_data.schema_id), func.lit(4))
+    wikimedia_value_df = wikimedia_value_df.withColumn("value", func.concat(magicByteBinary, schemaIdBinary, func.col("value")))
+
+    # Write to Kafka Sink
+    wikimedia_value_df \
+    .writeStream \
+    .format("kafka") \
+    .trigger(processingTime='1 second') \
+    .outputMode("append") \
+    .option("kafka.bootstrap.servers", kafka_url) \
+    .option("topic", kafka_analyzed_topic) \
+    .option("checkpointLocation", "hdfs://namenode:9000/user/admin/learning/streaming/checkpoint") \
+    .start() \
+    .awaitTermination()
+
+spark_consumer()
