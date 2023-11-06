@@ -50,5 +50,5 @@ def print_env(search_string):
             print(f'{k}={v}')
         else:
             tokens_exist += 1
-    if tokens_exist > 0:
+    if tokens_exist == 0:
         print('no env tokens set')
