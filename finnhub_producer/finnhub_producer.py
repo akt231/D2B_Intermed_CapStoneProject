@@ -15,7 +15,7 @@ d2b_tickers_finnhubio = ast.literal_eval( os.getenv('d2b_tickers_finnhubio'))
 # get kafka data from .env file
 d2b_kafka_server = os.getenv('d2b_kafka_server')
 d2b_kafka_port = os.getenv('d2b_kafka_port')
-d2b_kafka_topic_name = os.getenv('d2b_kafka_topic_name')
+d2b_kafka_producer_topic = os.getenv('d2b_kafka_producer_topic')
 
 # websocket functions
 def on_message(ws, message, producer):
@@ -29,7 +29,7 @@ def on_message(ws, message, producer):
         }, 
         loaded_schema
     )
-    producer.send(d2b_kafka_topic_name, avro_message)
+    producer.send(d2b_kafka_producer_topic, avro_message)
 
 def on_error(ws, error):
     print(error)

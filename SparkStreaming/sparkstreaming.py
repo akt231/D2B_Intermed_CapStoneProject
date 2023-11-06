@@ -14,7 +14,7 @@ load_dotenv()
 # get kafka data from .env file
 d2b_kafka_server = os.getenv('d2b_kafka_server')
 d2b_kafka_port = os.getenv('d2b_kafka_port')
-d2b_kafka_topic_name = os.getenv('d2b_kafka_topic_name')
+d2b_kafka_producer_topic = os.getenv('d2b_kafka_producer_topic')
 
 kafka_url = "kafka-broker:29092"
 schema_registry_url = "http://schema-registry:8083"
