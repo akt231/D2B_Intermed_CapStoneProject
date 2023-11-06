@@ -1,4 +1,4 @@
-# imorting required modules and functions
+# importing required modules and functions
 import os
 import ast
 import websocket
@@ -73,4 +73,4 @@ def main(d2b_token_finnhubio, d2b_kafka_server, d2b_kafka_port):
     
     
 if __name__ == "__main__":
-    main()
+    main(d2b_token_finnhubio, d2b_kafka_server, d2b_kafka_port)

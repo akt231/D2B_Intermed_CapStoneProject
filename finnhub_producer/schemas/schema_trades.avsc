@@ -1,55 +1,44 @@
 {
-  "type" : "record",
-  "name" : "message",
-  "namespace" : "ProducerFinnhub",
-  "fields" : [ {
-    "name" : "data",
-    "type" : {
-      "type" : "array",
-      "items" : {
-        "type" : "record",
-        "name" : "data",
-        "fields" : [ {
-          "name" : "c",
-          "type":[
-            {
-               "type":"array",
-               "items":["null","string"],
-               "default":[]
-            },
-            "null"
-          ],
-          "doc" : "Trade conditions"
-        }, 
-        {
-          "name" : "p",
-          "type" : "double",
-          "doc" : "Price at which the stock was traded"
-        }, 
-        {
-          "name" : "s",
-          "type" : "string",
-          "doc" : "Symbol of a stock"
-        }, 
-        {
-          "name" : "t",
-          "type" : "long",
-          "doc" : "Timestamp at which the stock was traded"
-        }, 
-        {
-          "name" : "v",
-          "type" : "double",
-          "doc" : "Volume at which the stock was traded"
-        } ]
-      },
-      "doc" : "Trades messages"
-    },
-    "doc"  : "Contains data inside a message"
-  }, 
-  {
-    "name" : "type",
-    "type" : "string",
-    "doc"  : "Type of message"
-  } ],
-  "doc" : "A schema for upcoming Finnhub messages"
+    "type": "record",
+    "name": "TestObject",
+    "namespace": "ca.dataedu",
+    "fields": [{
+        "name": "data",
+        "type": ["null", {
+            "type": "array",
+            "items": ["null", {
+                "type": "record",
+                "name": "Data",
+                "fields": [{
+                    "name": "c",
+                    "type": ["null", {
+                        "type": "array",
+                        "items": ["null", "string"]
+                    }],
+                    "default": null
+                }, {
+                    "name": "p",
+                    "type": ["null", "double"],
+                    "default": null
+                }, {
+                    "name": "s",
+                    "type": ["null", "string"],
+                    "default": null
+                }, {
+                    "name": "t",
+                    "type": ["null", "long"],
+                    "default": null
+                }, {
+                    "name": "v",
+                    "type": ["null", "int"],
+                    "default": null
+                }]
+            }]
+        }],
+        "default": null
+    }, {
+        "name": "type",
+        "type": ["null", "string"],
+        "default": null
+    }]
 }
