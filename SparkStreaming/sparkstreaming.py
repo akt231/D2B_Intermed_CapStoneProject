@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     spark = SparkSession\
         .builder\
-        .appName("PySpark Structured Streaming from Kafka and Message Format as avro")\
+        .appName("PySpark Structured Streaming from Kafka|Message Format as avro")\
         .master("local[*]")\
         .getOrCreate()
 
