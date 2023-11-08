@@ -1,9 +1,7 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.avro.functions import from_avro
 from pyspark.sql.functions import col
-import ast
 import os
-
 import time
 
 kafka_topic_name = os.getenv('d2b_token_finnhubio')
@@ -16,21 +14,20 @@ if __name__ == "__main__":
     print("Stream Data Processing Application Started ...")
     print(time.strftime("%Y-%m-%d %H:%M:%S"))
 
-    spark = SparkSession \
-        .builder \
-        .appName("PySpark Structured Streaming from Kafka and Message Format as avro") \
-        .master("local[*]") \
+    spark = SparkSession\
+        .builder\
+        .appName("PySpark Structured Streaming from Kafka and Message Format as avro")\
+        .master("local[*]")\
         .getOrCreate()
 
     spark.sparkContext.setLogLevel("ERROR")
 
     # Construct a streaming DataFrame that reads from test-topic
-    trades_df = spark \
-        .readStream \
+    trades_df = spark.readStream \
         .format("kafka") \
         .option("kafka.bootstrap.servers", kafka_bootstrap_servers) \
         .option("subscribe", kafka_topic_name) \
-        .option("startingOffsets", "latest") \
+        .option("startingOffsets", "earliest") \
         .load()
 
     print("Printing Schema of trades_df: ")
@@ -39,10 +36,10 @@ if __name__ == "__main__":
     trades_df1 = trades_df.select("value", "timestamp")
 
     # Define a schema for the orders data
-    # order_id,order_product_name,order_card_type,order_amount,order_datetime,order_country_name,order_city_name,order_ecommerce_website_name
+    # Trade Conditions, price, symbol, timestamp, Volume, type of message
     trades_schema_avro = open('../finnhub_producer/schemas/schema_trades.avsc', mode='r').read()
 
-    # 8,Wrist Band,MasterCard,137.13,2020-10-21 18:37:02,United Kingdom,London,www.datamaking.com
+    # {"c":null,"p":35112.76,"s":"BINANCE:BTCUSDT","t":1699311054111,"v":0.00126}],"type":"trade"}
     trades_df2 = trades_df1\
         .select(from_avro(col("value"), trades_schema_avro)\
         .alias("Trades"), "timestamp")
@@ -50,17 +47,23 @@ if __name__ == "__main__":
     trades_df3 = trades_df2.select("Trades.*", "timestamp")
     trades_df3.printSchema()
 
-    # Simple aggregate - find total_order_amount by grouping country, city
-    trades_df4 = trades_df3.groupBy("order_country_name", "order_city_name") \
-        .agg({'order_amount': 'sum'}) \
-        .select("order_country_name", "order_city_name", col("sum(order_amount)") \
-        .alias("total_order_amount"))
+    # Simple aggregate - find total_volume_amount by grouping symbol
+    trades_df4 = trades_df3.groupBy("s").\
+                    agg(sum('v').alias('sum_volume'),
+                    max('v').alias('max_volume'), \
+                    min('v').alias('min_volume'), \
+                    mean('v').alias('mean_volume'), \
+                    count('v').alias('count_volume') )
+        
 
     print("Printing Schema of trades_df4: ")
     trades_df4.printSchema()
 
+    #define checkpoint directory 
+    checkpointDir = 'C:\Users\AKT\Downloads\projects.files\checkpoint'
+    
     # Write final result into console for debugging purpose
-    orders_agg_write_stream = trades_df4 \
+    trades_agg_write_stream = trades_df4 \
         .writeStream \
         .trigger(processingTime='5 seconds') \
         .outputMode("update") \
@@ -68,6 +71,6 @@ if __name__ == "__main__":
         .format("console") \
         .start()
 
-    orders_agg_write_stream.awaitTermination()
+    trades_agg_write_stream.awaitTermination()
 
     print("Stream Data Processing Application Completed.")
