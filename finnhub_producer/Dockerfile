@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.8
 
 WORKDIR /apps/app_d2b/intermediate/cap_project/finnhub_producer
 
