@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     spark = SparkSession\
         .builder\
-        .appName("PySpark Structured Streaming from Kafka|Message Format as avro")\
+        .appName("Structured_Streaming")\
         .master("local[*]")\
         .getOrCreate()
 
@@ -27,7 +27,7 @@ if __name__ == "__main__":
         .format("kafka") \
         .option("kafka.bootstrap.servers", kafka_bootstrap_servers) \
         .option("subscribe", kafka_topic_name) \
-        .option("startingOffsets", "earliest") \
+        .option("startingOffsets", "latest") \
         .load()
 
     print("Printing Schema of trades_df: ")
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     trades_df4.printSchema()
 
     #define checkpoint directory 
-    checkpointDir = 'C:\Users\AKT\Downloads\projects.files\checkpoint'
+    checkpointDir = 'C://Users//AKT//Downloads//projects.files//checkpoint'
     
     # Write final result into console for debugging purpose
     trades_agg_write_stream = trades_df4 \
@@ -68,6 +68,7 @@ if __name__ == "__main__":
         .trigger(processingTime='5 seconds') \
         .outputMode("update") \
         .option("truncate", "false")\
+        .option("checkpointLocation", checkpointDir) \
         .format("console") \
         .start()
 
