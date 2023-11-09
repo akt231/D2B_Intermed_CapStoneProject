@@ -1,0 +1,21 @@
+version: "3.6"
+
+services:
+  finnhubproducer:
+    build:
+      context: ./finnhub_producer
+      dockerfile: Dockerfile
+    container_name: FinnhubProducer
+
+  kafka:
+    build:
+      context: ./kafka
+      dockerfile: Dockerfile
+    container_name: kafka
+
+  spark-k8s:
+    build:
+      context: ./StreamProcessor
+      dockerfile: Dockerfile
+    container_name: spark-k8s
+
