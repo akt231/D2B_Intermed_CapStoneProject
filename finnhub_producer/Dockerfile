@@ -6,4 +6,4 @@ COPY . .
 
 RUN pip install -r requirements.txt
 
-CMD ["python","producer_finnhub/main.py"]
+CMD ["python","finnhub_producer/finnhub_producer.py"]
