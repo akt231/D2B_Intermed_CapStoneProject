@@ -41,25 +41,6 @@ services:
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
 
-  publisher:
-    depends_on:
-      - kafka
-    environment:
-      TOPIC: trades
-      ENVIRONMENT: local
-      INTERNAL_KAFKA_ADDR: 'kafka:9092'
-    build:
-      context: ./publisher
-  subscriber:
-    depends_on:
-      - kafka
-    environment:
-      TOPIC: trades
-      ENVIRONMENT: local
-      INTERNAL_KAFKA_ADDR: 'kafka:9092'
-    build:
-      context: ./subscriber
-
   client:
     build:
       context: ./finnhub_producer
@@ -83,7 +64,9 @@ services:
       context: ./SparkStreaming
       dockerfile: Dockerfile
     container_name: spark
-
+    networks: 
+      - d2b_nw
+      
 volumes: {}
 
 
