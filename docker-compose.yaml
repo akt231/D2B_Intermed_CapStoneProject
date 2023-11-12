@@ -2,7 +2,7 @@ version: "3.6"
 
 networks: 
   d2b_nw:
-    name: d2b_nw
+    driver: bridge
 
 services:
   zookeeper:
