@@ -1,41 +1,68 @@
 version: "3.6"
 
+networks: 
+  d2b_nw:
+    name: d2b_nw
+
 services:
-  finnhubproducer:
-    build:
-      context: ./finnhub_producer
-      dockerfile: Dockerfile
-    container_name: FinnhubProducer
-
   zookeeper:
+    image: "confluentinc/cp-zookeeper:latest"
+    container_name: zookeeper
+    networks: 
+      - d2b_nw
     ports:
-      - '50000:2181'
-    #image: zookeeper:3.5.9
-    image: zookeeper:latest
+      - '2181:2181'
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
 
-  kafka:
+  broker:
+    image: "confluentinc/cp-enterprise-kafka:5.2.1"
+    container_name: broker
+    networks: 
+      - d2b_nw
     ports:
-      - '50001:9092'
-      - '50002:9093'
+      - '9092:9092'
+      - '29094:29094'
     depends_on:
       - zookeeper
     environment:
+      KAFKA_BROKER_ID: 0
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENERS: 'INTERNAL://:9092'
-      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://:9092'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'INTERNAL:PLAINTEXT'
-      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: '1'
+      KAFKA_LISTENERS: LISTENER_BOB://kafka0:29092,LISTENER_FRED://kafka0:9092,LISTENER_ALICE://kafka0:29094
+      KAFKA_ADVERTISED_LISTENERS: LISTENER_BOB://kafka0:29092,LISTENER_FRED://localhost:9092,LISTENER_ALICE://never-gonna-give-you-up:29094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_BOB:PLAINTEXT,LISTENER_FRED:PLAINTEXT,LISTENER_ALICE:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_BOB
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       KAFKA_CREATE_TOPICS: 'example-topic:1:1'
       KAFKA_ADVERTISED_HOST_NAME: host.docker.internal # change to 172.17.0.1 if running on Ubuntu
-    image: 'wurstmeister/kafka:2.13-2.8.1'
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 100
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
+
+  client:
+    build:
+      context: ./finnhub_producer
+    container_name: finnhub_producer
+    depends_on: 
+      - broker
+    networks: 
+      - d2b_nw
+    entrypoint: 
+      - bash 
+      - -c 
+      - |
+        echo 'Giving Kafka a bit of time to start up…'
+        sleep 30
+        # Run the client code
+        python ./finnhub_producer/finnhub_producer.py broker:9092
+
   publisher:
     depends_on:
       - kafka
     environment:
-      TOPIC: example-topic
+      TOPIC: trades
       ENVIRONMENT: local
       INTERNAL_KAFKA_ADDR: 'kafka:9092'
     build:
@@ -44,16 +71,19 @@ services:
     depends_on:
       - kafka
     environment:
-      TOPIC: example-topic
+      TOPIC: trades
       ENVIRONMENT: local
       INTERNAL_KAFKA_ADDR: 'kafka:9092'
     build:
       context: ./subscriber
-volumes: {}
-
+  
   spark-k8s:
     build:
       context: ./SparkStreaming
       dockerfile: Dockerfile
     container_name: spark
+
+volumes: {}
+
+
 
