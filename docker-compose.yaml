@@ -29,34 +29,17 @@ services:
     environment:
       KAFKA_BROKER_ID: 0
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENERS: LISTENER_BOB://kafka0:29092,LISTENER_FRED://kafka0:9092,LISTENER_ALICE://kafka0:29094
-      KAFKA_ADVERTISED_LISTENERS: LISTENER_BOB://kafka0:29092,LISTENER_FRED://localhost:9092,LISTENER_ALICE://never-gonna-give-you-up:29094
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_BOB:PLAINTEXT,LISTENER_FRED:PLAINTEXT,LISTENER_ALICE:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_BOB
+      KAFKA_LISTENERS: LISTENER_01://kafka0:29092,LISTENER_02://kafka0:9092,LISTENER_03://kafka0:29094
+      KAFKA_ADVERTISED_LISTENERS: LISTENER_01://kafka0:29092,LISTENER_02://localhost:9092,LISTENER_03://never-gonna-give-you-up:29094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_01:PLAINTEXT,LISTENER_02:PLAINTEXT,LISTENER_03:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_01
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
-      KAFKA_CREATE_TOPICS: 'example-topic:1:1'
+      KAFKA_CREATE_TOPICS: 'trades:1:1'
       KAFKA_ADVERTISED_HOST_NAME: host.docker.internal # change to 172.17.0.1 if running on Ubuntu
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 100
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
-
-  client:
-    build:
-      context: ./finnhub_producer
-    container_name: finnhub_producer
-    depends_on: 
-      - broker
-    networks: 
-      - d2b_nw
-    entrypoint: 
-      - bash 
-      - -c 
-      - |
-        echo 'Giving Kafka a bit of time to start up…'
-        sleep 30
-        # Run the client code
-        python ./finnhub_producer/finnhub_producer.py broker:9092
 
   publisher:
     depends_on:
@@ -76,7 +59,25 @@ services:
       INTERNAL_KAFKA_ADDR: 'kafka:9092'
     build:
       context: ./subscriber
-  
+
+  client:
+    build:
+      context: ./finnhub_producer
+      dockerfile: Dockerfile
+    container_name: finnhub_producer
+    depends_on: 
+      - broker
+    networks: 
+      - d2b_nw
+    entrypoint: 
+      - bash 
+      - -c 
+      - |
+        echo 'Giving Kafka a bit of time to start up…'
+        sleep 30
+        # Run the client code
+        python ./finnhub_producer/finnhub_producer.py broker:9092
+
   spark-k8s:
     build:
       context: ./SparkStreaming
