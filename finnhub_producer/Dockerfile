@@ -1,27 +1,24 @@
-# Use python 3.8 base image from Docker Hub
-FROM python:3.8
+# Using the Ubuntu image (our OS)
+FROM ubuntu:latest
+# Update package manager (apt-get) 
+# and install (with the yes flag `-y`)
+# Python and Pip
+RUN apt-get update && apt-get install -y \
+    python3.8 \
+    python3-pip
 
-# Install required packages for Python
-RUN apk update && apk add python3.8 py3-pip
+##Set current working directory
+WORKDIR /apps/d2b_cap/finnhub_producer
 
-#Set current working directory
-WORKDIR /apps/app_d2b/intermediate/cap_project/finnhub_producer
-
-# Copy the application files to the container
+## Copy the application files to the container
 COPY . .
 
 # Install Python dependencies
 #RUN pip install -r requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Set environment variables
-#ENV FLASK_APP=app.py
 
-# Expose port 80 to the outside
-#EXPOSE 80
-
-# Run the frontend application
-#CMD ["flask", "run", "--host=0.0.0.0", "--port=80"]
-
-
-CMD ["python","finnhub_producer/finnhub_producer.py"]
+#
+## Copy the application files to the container
+#COPY . .
+#CMD ["python","finnhub_producer/finnhub_producer.py"]

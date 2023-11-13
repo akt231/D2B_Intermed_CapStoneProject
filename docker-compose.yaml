@@ -8,6 +8,9 @@ services:
   zookeeper:
     image: "confluentinc/cp-zookeeper:latest"
     container_name: zookeeper
+    working_dir: /apps/d2b_cap/zookeeper
+    volumes:
+      - "zookeeper_logs:/apps/d2b_cap/kafka_log" #https://github.com/rafaelzimmermann/learn-kafka-with-python/blob/master/docker-compose.yml
     networks: 
       - appnet
     ports:
@@ -21,13 +24,18 @@ services:
   broker:
     image: "confluentinc/cp-enterprise-kafka:latest"
     container_name: broker
+    working_dir: /apps/d2b_cap/kafka
+    volumes:
+      - ./kafka:/apps/d2b_cap/kafka
+      - "kafka_logs:/kafka_log"
     networks: 
       - appnet
     ports:
       - '9092:9092'
       - '29094:29094'
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     environment:
       KAFKA_BROKER_ID: 0
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
@@ -44,22 +52,23 @@ services:
       KAFKA_CREATE_TOPICS: 'trades:1:1'
       KAFKA_ADVERTISED_HOST_NAME: host.docker.internal # change to 172.17.0.1 if running on Ubuntu
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 100
-    volumes:
-      - '/var/run/docker.sock:/var/run/docker.sock'
+    #volumes:
+    #  - /var/run/docker.sock:/var/run/docker.sock
 
-  client:
+  producer:
     build:
       context: ./finnhub_producer
       dockerfile: Dockerfile
     container_name: finnhub_producer
     restart: always
-    depends_on: 
-      - broker
+    depends_on:
+      broker:
+        condition: service_healthy
     networks: 
       - appnet
-    working_dir: /apps/app_d2b/intermediate/cap_project/finnhub_producer
     volumes:
-      - '/var/run/docker.sock:/var/run/docker.sock'
+      - app_producer:/apps/d2b_cap/finnhub_producer
+    working_dir: /apps/d2b_cap/finnhub_producer
     entrypoint: 
       - bash 
       - -c 
@@ -67,25 +76,42 @@ services:
         echo 'Giving Kafka a bit of time to start up…'
         sleep 30
         # Run the client code
-        python ./finnhub_producer/finnhub_producer.py broker:9092
-
-  spark:
-    image: bitnami/spark:3
-    container_name: spark_master
-    networks: 
-      - appnet
-    ports:
-      - 8085:8080
-    environment:
-      - SPARK_UI_PORT=8080
-      - SPARK_MODE=master
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-    volumes:
-      - ./:/home
-      - spark-data:/opt/bitnami/spark/data
-
-volumes: {}
+        python ./finnhub_producer.py broker:9092
 
 
+  #spark:
+  #  image: bitnami/spark:3
+  #  container_name: spark_master
+  #  networks: 
+  #    - appnet
+  #  ports:
+  #    - 8085:8080
+  #  environment:
+  #    - SPARK_UI_PORT=8080
+  #    - SPARK_MODE=master
+  #    - SPARK_RPC_AUTHENTICATION_ENABLED=no
+  #    - SPARK_RPC_ENCRYPTION_ENABLED=no
+  #  volumes:
+  #    - ./:/home
+  #    - spark-data:/opt/bitnami/spark/data
+
+volumes:
+  zookeeper_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: $pwd/kafka/logs
+  kafka_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: $pwd/kafka/logs
+  app_producer:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: $pwd/finnhub_producer
 
