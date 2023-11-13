@@ -13,6 +13,12 @@ services:
       - "zookeeper_logs:/apps/d2b_cap/kafka_log" #https://github.com/rafaelzimmermann/learn-kafka-with-python/blob/master/docker-compose.yml
     networks: 
       - appnet
+    healthcheck:
+      test: nc -z localhost:2181 || exit -1
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     ports:
       - '2181:2181'
     environment:
@@ -36,6 +42,12 @@ services:
     depends_on:
       zookeeper:
         condition: service_healthy
+    healthcheck:
+      test: nc -z localhost:9092 || exit -1
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     environment:
       KAFKA_BROKER_ID: 0
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
@@ -49,11 +61,31 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
-      KAFKA_CREATE_TOPICS: 'trades:1:1'
+      KAFKA_CREATE_TOPICS: '${d2b_kafka_producer_topic}:1:1'
       KAFKA_ADVERTISED_HOST_NAME: host.docker.internal # change to 172.17.0.1 if running on Ubuntu
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 100
     #volumes:
     #  - /var/run/docker.sock:/var/run/docker.sock
+
+  init-broker:
+    image: confluentinc/cp-kafka:6.1.1
+    depends_on:
+      - broker
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      "
+      # blocks until kafka is reachable
+      kafka-topics --bootstrap-server kafka:29092 --list
+
+      echo -e 'Creating kafka topics'
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic ${d2b_kafka_producer_topic} --replication-factor 1 --partitions 1
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic ${d2b_kafka_producer_topic} --replication-factor 1 --partitions 1
+
+      echo -e 'Successfully created the following topics:'
+      kafka-topics --bootstrap-server kafka:29092 --list
+      "
+
+
 
   producer:
     build:
@@ -62,10 +94,22 @@ services:
     container_name: finnhub_producer
     restart: always
     depends_on:
+      zookeeper:
+        condition: service_healthy
       broker:
         condition: service_healthy
+      init_broker:
+        condition: service_healthy
+    healthcheck:
+      test: nc -z localhost:80 || exit -1
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks: 
       - appnet
+    ports:
+      - '80:80'
     volumes:
       - app_producer:/apps/d2b_cap/finnhub_producer
     working_dir: /apps/d2b_cap/finnhub_producer
