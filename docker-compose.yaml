@@ -67,26 +67,6 @@ services:
     #volumes:
     #  - /var/run/docker.sock:/var/run/docker.sock
 
-  init-broker:
-    image: confluentinc/cp-kafka:6.1.1
-    depends_on:
-      - broker
-    entrypoint: [ '/bin/sh', '-c' ]
-    command: |
-      "
-      # blocks until kafka is reachable
-      kafka-topics --bootstrap-server kafka:29092 --list
-
-      echo -e 'Creating kafka topics'
-      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic ${d2b_kafka_producer_topic} --replication-factor 1 --partitions 1
-      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic ${d2b_kafka_producer_topic} --replication-factor 1 --partitions 1
-
-      echo -e 'Successfully created the following topics:'
-      kafka-topics --bootstrap-server kafka:29092 --list
-      "
-
-
-
   producer:
     build:
       context: ./finnhub_producer
@@ -97,8 +77,6 @@ services:
       zookeeper:
         condition: service_healthy
       broker:
-        condition: service_healthy
-      init_broker:
         condition: service_healthy
     healthcheck:
       test: nc -z localhost:80 || exit -1
@@ -113,14 +91,14 @@ services:
     volumes:
       - app_producer:/apps/d2b_cap/finnhub_producer
     working_dir: /apps/d2b_cap/finnhub_producer
-    entrypoint: 
-      - bash 
-      - -c 
-      - |
-        echo 'Giving Kafka a bit of time to start up…'
-        sleep 30
-        # Run the client code
-        python ./finnhub_producer.py broker:9092
+    #entrypoint: 
+    #  - bash 
+    #  - -c 
+    #  - |
+    #    echo 'Giving Kafka a bit of time to start up…'
+    #    sleep 30
+    #    # Run the client code
+    #    python ./finnhub_producer.py broker:9092
 
 
   #spark:
@@ -145,17 +123,17 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: $pwd/kafka/logs
+      device: ./kafka/logs
   kafka_logs:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: $pwd/kafka/logs
+      device: ./kafka/logs
   app_producer:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: $pwd/finnhub_producer
+      device: ./finnhub_producer
 
