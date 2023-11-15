@@ -6,11 +6,13 @@ networks:
 
 services:
   zookeeper:
-    image: "confluentinc/cp-zookeeper:latest"
+    build:
+      context: ./zookeeper
+      dockerfile: Dockerfile
     container_name: zookeeper
-    working_dir: /apps/d2b_cap/zookeeper
-    volumes:
-      - "zookeeper_logs:/apps/d2b_cap/kafka_log" #https://github.com/rafaelzimmermann/learn-kafka-with-python/blob/master/docker-compose.yml
+    #working_dir: /apps/d2b_cap/zookeeper
+    #volumes:
+    #  - "zookeeper_logs:/apps/d2b_cap/kafka_log" #https://github.com/rafaelzimmermann/learn-kafka-with-python/blob/master/docker-compose.yml
     networks: 
       - appnet
     healthcheck:
