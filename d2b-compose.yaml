@@ -14,13 +14,14 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    restart: on-failure
+    networks: 
+      - appnet
 
   broker:
     image: confluentinc/cp-server:7.3.0
     hostname: broker
     container_name: broker
-    depends_on:
-      - zookeeper
     ports:
       - "9092:9092"
       - "9101:9101"
@@ -34,23 +35,22 @@ services:
       KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
     restart: on-failure
+    networks: 
+      - appnet
 
   producer:
     build:
       context: ./finnhub_producer
       dockerfile: Dockerfile
-    container_name: finnhub_producer
-    restart: always
-    depends_on:
-      - zookeeper
-      - broker
-    networks: 
-      - appnet
+    container_name: producer
     ports:
       - '80:80'
     volumes:
-      - app_producer:/apps/d2b_cap/finnhub_producer
-    working_dir: /apps/d2b_cap/finnhub_producer
+      - app_producer:/usr/src/app
+    working_dir: /usr/src/app
+    restart: on-failure
+    networks: 
+      - appnet
 
 volumes:
   app_producer:
