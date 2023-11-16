@@ -1,4 +1,7 @@
 FROM confluentinc/cp-zookeeper:latest
-#RUN  apk update && apk upgrade && apk add netcat-openbsd
-RUN apk --no-cache add curl
-RUN apk --no-cache add netcat-openbsd
+
+#RUN apt-get -y update && apt-get -y install curl
+#RUN apt-get -y update && apt-get -y install netcat
+
+#RUN apk update && apk add --no-cache curl 
+#RUN apk update && apk add --no-cache netcat-openbsd 
