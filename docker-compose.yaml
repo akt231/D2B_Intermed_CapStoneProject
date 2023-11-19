@@ -10,31 +10,14 @@ services:
     hostname: zookeeper
     container_name: zookeeper
     ports:
-<<<<<<< HEAD
       - "2181:2181"
-=======
-      - '2181:2181'
->>>>>>> f5dbea11beb89042d70da76563c5fe882042e634
-      - '8078:8080'
-      - '3181:3181'
+      - "8078:8080"
+      - "3181:3181"
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-<<<<<<< HEAD
       #KAFKA_OPTS: "-Dzookeeper.admin.enableServer=false -Dzookeeper.4lw.commands.whitelist=ruok"
     restart: always
-=======
-      KAFKA_OPTS: "-Dzookeeper.admin.enableServer=false -Dzookeeper.4lw.commands.whitelist=ruok"
-      #KAFKA_OPTS: '-Dzookeeper.admin.serverPort=3181'
-
-  broker:
-    image: confluentinc/cp-server:7.3.0
-    container_name: broker
-    working_dir: /apps/d2b_cap/kafka
-    volumes:
-      - ./kafka:/apps/d2b_cap/kafka
-      - "kafka_logs:/kafka_log"
->>>>>>> f5dbea11beb89042d70da76563c5fe882042e634
     networks: 
       - appnet
     volumes:
@@ -57,21 +40,13 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
-<<<<<<< HEAD
     restart: always
+    working_dir: /home/appuser/kafka/scripts
     networks: 
       - appnet
     volumes:
       - kafka-data:/var/lib/kafka/data
-=======
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
-      #KAFKA_CREATE_TOPICS: '${d2b_kafka_producer_topic}:1:1'
-      KAFKA_ADVERTISED_HOST_NAME: host.docker.internal # change to 172.17.0.1 if running on Ubuntu
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 100
-      
-    #volumes:
-    #  - /var/run/docker.sock:/var/run/docker.sock
->>>>>>> f5dbea11beb89042d70da76563c5fe882042e634
+      - kafka-scripts:/home/appuser/kafka/scripts
 
   producer:
     build:
@@ -79,7 +54,7 @@ services:
       dockerfile: ./finnhub_producer/Dockerfile
     container_name: producer
     ports:
-      - '1488:88'
+      - "1488:88"
     #volumes:
     #  - app_producer:/usr/src/app/producer
     working_dir: /usr/src/app/producer
@@ -87,15 +62,31 @@ services:
     networks: 
       - appnet
 
+  spark:
+    image: docker.io/bitnami/spark:3
+    container_name: spark_master
+    hostname: spark_master
+    user: root
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    ports:
+      - '8080:8080'
+    volumes:
+      - ../streamingProje:/home
+      - /opt/spark/conf/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf
+      - /opt/spark/jars:/opt/bitnami/spark/ivy:z
+    networks: 
+      - appnet
+    #networks:
+    #  datapipeline:
+    #    ipv4_address: 172.18.0.2
 
 
 volumes:
-  #app_producer:
-  #  driver: local
-  #  driver_opts:
-  #    type: none
-  #    o: bind
-  #    device: ./finnhub_producer
   zk-data:
     driver: local
     driver_opts:
@@ -114,3 +105,15 @@ volumes:
       type: none
       o: bind
       device: ./kafka/logs/kafka-data
+  kafka-scripts:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./kafka/scripts
+  app_producer:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./finnhub_producer
