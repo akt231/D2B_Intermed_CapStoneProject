@@ -1,4 +1,4 @@
-version: "3.8"
+version: '2'
 
 networks: 
   appnet:
@@ -7,133 +7,83 @@ networks:
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
-    #build:
-    #  context: ./zookeeper
-    #  dockerfile: Dockerfile
+    hostname: zookeeper
     container_name: zookeeper
-    #working_dir: /apps/d2b_cap/zookeeper
-    #volumes:
-    #  - "zookeeper_logs:/apps/d2b_cap/zookeeper_log" #https://github.com/rafaelzimmermann/learn-kafka-with-python/blob/master/docker-compose.yml
-    networks: 
-      - appnet
-    #healthcheck:
-    #  test: echo ruok | nc 127.0.0.1 2181 || exit -1
-    #  interval: 10s
-    #  timeout: 5s
-    #  retries: 3
-    #  start_period: 10s
-    restart: always
     ports:
-      - '2181:2181'
+      - "2181:2181"
+      - '8078:8080'
+      - '3181:3181'
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-
-  broker:
-    image: confluentinc/cp-server:7.3.0
-    container_name: broker
-    working_dir: /apps/d2b_cap/kafka
-    volumes:
-      - ./kafka:/apps/d2b_cap/kafka
-      - "kafka_logs:/kafka_log"
+      #KAFKA_OPTS: "-Dzookeeper.admin.enableServer=false -Dzookeeper.4lw.commands.whitelist=ruok"
+    restart: always
     networks: 
       - appnet
+    volumes:
+      - zk-data:/var/lib/zookeeper/data
+      - zk-txn-logs:/var/lib/zookeeper/log
+
+  broker:
+    image: confluentinc/cp-kafka:7.3.0
+    hostname: broker
+    container_name: broker
     ports:
-      - '9092:9092'
-      - '29094:29094'
-    depends_on:
-      - zookeeper
-        #condition: service_healthy
-    restart: on-failure
-    healthcheck:
-      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server 127.0.0.1:9092 --topic <TOPIC_NAME> --describe"]
-      interval: 2s
-      timeout: 2s
-      retries: 15
-    #healthcheck:
-    #  test: nc -z localhost:9092 || exit -1
-    #  interval: 10s
-    #  timeout: 5s
-    #  retries: 3
-    #  start_period: 10s
+      - "9092:9092"
+      - "9101:9101"
+      - "29092:29092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENERS: INTERNAL://kafka1:19092,EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9092,DOCKER://host.docker.internal:29092
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:19092,EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9092,DOCKER://host.docker.internal:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092, PLAINTEXT_HOST://localhost:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
-      #KAFKA_CREATE_TOPICS: '${d2b_kafka_producer_topic}:1:1'
-      KAFKA_ADVERTISED_HOST_NAME: host.docker.internal # change to 172.17.0.1 if running on Ubuntu
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 100
-      KAFKA_OPTS: "-Dzookeeper.4lw.commands.whitelist=ruok"
-    #volumes:
-    #  - /var/run/docker.sock:/var/run/docker.sock
+    restart: always
+    networks: 
+      - appnet
+    volumes:
+      - kafka-data:/var/lib/kafka/data
 
   producer:
     build:
-      context: ./finnhub_producer
-      dockerfile: Dockerfile
-    container_name: finnhub_producer
+      context: ./
+      dockerfile: ./finnhub_producer/Dockerfile
+    container_name: producer
+    ports:
+      - '1488:88'
+    #volumes:
+    #  - app_producer:/usr/src/app/producer
+    working_dir: /usr/src/app/producer
     restart: always
-    depends_on:
-      zookeeper:
-        condition: service_healthy
-      broker:
-        condition: service_healthy
-    healthcheck:
-      test: nc -z localhost:80 || exit -1
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
     networks: 
       - appnet
-    ports:
-      - '80:80'
-    volumes:
-      - app_producer:/apps/d2b_cap/finnhub_producer
-    working_dir: /apps/d2b_cap/finnhub_producer
 
 
-
-  #spark:
-  #  image: bitnami/spark:3
-  #  container_name: spark_master
-  #  networks: 
-  #    - appnet
-  #  ports:
-  #    - 8085:8080
-  #  environment:
-  #    - SPARK_UI_PORT=8080
-  #    - SPARK_MODE=master
-  #    - SPARK_RPC_AUTHENTICATION_ENABLED=no
-  #    - SPARK_RPC_ENCRYPTION_ENABLED=no
-  #  volumes:
-  #    - ./:/home
-  #    - spark-data:/opt/bitnami/spark/data
 
 volumes:
-  zookeeper_logs:
+  #app_producer:
+  #  driver: local
+  #  driver_opts:
+  #    type: none
+  #    o: bind
+  #    device: ./finnhub_producer
+  zk-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ./kafka/logs
-  kafka_logs:
+      device: ./kafka/logs/zk-data
+  zk-txn-logs:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ./kafka/logs
-  app_producer:
+      device: ./kafka/logs/zk-txn-logs
+  kafka-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ./finnhub_producer
-
+      device: ./kafka/logs/kafka-data

@@ -7,6 +7,7 @@ from kafka import KafkaProducer
 from kafka.errors import KafkaError
 import os
 
+
 #setting up Finnhub client connection to test if tickers specified in config exist
 def init_client(token_finnhubio):
     return finnhub.Client(api_key=token_finnhubio)
