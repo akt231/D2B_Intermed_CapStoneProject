@@ -10,14 +10,31 @@ services:
     hostname: zookeeper
     container_name: zookeeper
     ports:
+<<<<<<< HEAD
       - "2181:2181"
+=======
+      - '2181:2181'
+>>>>>>> f5dbea11beb89042d70da76563c5fe882042e634
       - '8078:8080'
       - '3181:3181'
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+<<<<<<< HEAD
       #KAFKA_OPTS: "-Dzookeeper.admin.enableServer=false -Dzookeeper.4lw.commands.whitelist=ruok"
     restart: always
+=======
+      KAFKA_OPTS: "-Dzookeeper.admin.enableServer=false -Dzookeeper.4lw.commands.whitelist=ruok"
+      #KAFKA_OPTS: '-Dzookeeper.admin.serverPort=3181'
+
+  broker:
+    image: confluentinc/cp-server:7.3.0
+    container_name: broker
+    working_dir: /apps/d2b_cap/kafka
+    volumes:
+      - ./kafka:/apps/d2b_cap/kafka
+      - "kafka_logs:/kafka_log"
+>>>>>>> f5dbea11beb89042d70da76563c5fe882042e634
     networks: 
       - appnet
     volumes:
@@ -40,11 +57,21 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
+<<<<<<< HEAD
     restart: always
     networks: 
       - appnet
     volumes:
       - kafka-data:/var/lib/kafka/data
+=======
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      #KAFKA_CREATE_TOPICS: '${d2b_kafka_producer_topic}:1:1'
+      KAFKA_ADVERTISED_HOST_NAME: host.docker.internal # change to 172.17.0.1 if running on Ubuntu
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 100
+      
+    #volumes:
+    #  - /var/run/docker.sock:/var/run/docker.sock
+>>>>>>> f5dbea11beb89042d70da76563c5fe882042e634
 
   producer:
     build:
