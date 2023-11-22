@@ -63,7 +63,7 @@ services:
       - appnet
 
   sparkm:
-    image: docker.io/bitnami/spark:3.5
+    image: bitnami/spark:3.5
     container_name: sparkm
     environment:
       - SPARK_MODE=master
@@ -82,7 +82,7 @@ services:
       - ./data:/opt/spark-data
       
   sparkw:
-    image: docker.io/bitnami/spark:3.5
+    image: bitnami/spark:3.5
     container_name: sparkw
     environment:
       - SPARK_MODE=worker
