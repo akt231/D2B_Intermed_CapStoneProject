@@ -77,9 +77,10 @@ services:
     ports:
       - "9090:8080"
       - "7077:7077"
+    #working_dir: /opt/spark-apps
     volumes:
-      - ./apps:/opt/spark-apps
-      - ./data:/opt/spark-data
+      - sprk_apps:/opt/spark-apps
+      - sprk_data:/opt/spark-data
       
   sparkw:
     image: bitnami/spark:3.5
@@ -99,9 +100,10 @@ services:
     ports:
       - "9091:8080"
       - "7001:7000"
+    #working_dir: /opt/spark-apps 
     volumes:
-      - ./SparkStreaming/apps:/opt/spark-apps
-      - ./SparkStreaming/data:/opt/spark-data
+      - sprk_apps:/opt/spark-apps
+      - sprk_data:/opt/spark-data
     #networks:
     #  datapipeline:
     #    ipv4_address: 172.18.0.2
@@ -138,3 +140,15 @@ volumes:
       type: none
       o: bind
       device: ./finnhub_producer
+  sprk_apps:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./SparkStreaming/apps
+  sprk_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./SparkStreaming/data
