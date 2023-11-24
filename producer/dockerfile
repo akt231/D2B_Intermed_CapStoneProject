@@ -1,5 +1,6 @@
 # Using the Ubuntu image (our OS)
-FROM python:3.10.13-alpine
+#FROM python:3.10.13-alpine
+FROM python:3.10-slim-buster
 RUN apk update && apk upgrade --no-cache
 RUN pip install --upgrade pip
 WORKDIR /usr/src/app/producer

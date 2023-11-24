@@ -51,7 +51,7 @@ services:
   producer:
     build:
       context: .
-      dockerfile: ./producer/Dockerfile
+      dockerfile: ./producer/dockerfile
     container_name: producer
     ports:
       - "1488:88"
