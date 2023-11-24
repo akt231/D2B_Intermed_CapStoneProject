@@ -50,8 +50,8 @@ services:
 
   producer:
     build:
-      context: ./
-      dockerfile: ./finnhub_producer/Dockerfile
+      context: .
+      dockerfile: ./producer/Dockerfile
     container_name: producer
     ports:
       - "1488:88"
@@ -64,8 +64,8 @@ services:
 
   sparkm:
     build:
-      context: ./SparkStreaming
-      dockerfile: ./Dockerfile
+      context: ./spark
+      dockerfile: Dockerfile
     container_name: sparkm
     environment:
       - SPARK_MODE=master
@@ -86,7 +86,7 @@ services:
       
   sparkw:
     build:
-      context: ./SparkStreaming
+      context: ./spark
       dockerfile: Dockerfile
     container_name: sparkw
     environment:
