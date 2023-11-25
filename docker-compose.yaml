@@ -51,7 +51,7 @@ services:
   producer:
     build:
       context: .
-      dockerfile: ./producer/dockerfile
+      dockerfile: ./producer/Dockerfile
     container_name: producer
     ports:
       - "1488:88"
@@ -69,6 +69,7 @@ services:
     container_name: sparkm
     environment:
       - SPARK_MODE=master
+      - SPARK_WORKLOAD=master
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
@@ -91,6 +92,7 @@ services:
     container_name: sparkw
     environment:
       - SPARK_MODE=worker
+      - SPARK_WORKLOAD=worker
       - SPARK_MASTER_URL=spark://spark:7077
       - SPARK_WORKER_MEMORY=1G
       - SPARK_WORKER_CORES=1
@@ -138,21 +140,21 @@ volumes:
       type: none
       o: bind
       device: ./kafka/scripts
-  app_producer:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./finnhub_producer
+  #app_producer:
+  #  driver: local
+  #  driver_opts:
+  #    type: none
+  #    o: bind
+  #    device: ./producer
   sprk_apps:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ./SparkStreaming/apps
+      device: ./spark/apps
   sprk_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ./SparkStreaming/data
+      device: ./spark/data
