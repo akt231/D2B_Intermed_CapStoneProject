@@ -14,5 +14,5 @@ COPY ./start-spark.sh .
 RUN pip install --no-cache-dir -r requirements.txt
 ENV PYTHONUNBUFFERED 1
 USER 1001
-CMD tail -f /dev/null
-#CMD ["/bin/bash", "./start-spark.sh"]
+#CMD tail -f /dev/null
+CMD ["/bin/bash", "./start-spark.sh"]

@@ -17,9 +17,14 @@ if __name__ == "__main__":
     spark = SparkSession\
         .builder\
         .appName("Structured_Streaming")\
-        .master("local[*]")\
+        .master("spark://sparkm:7077")\
         .getOrCreate()
+        
+    # Set Config
+    # spark.conf.set("spark.sql.shuffle.partitions", "30")
 
+    # Reduce logging
+    #spark.sparkContext.setLogLevel("WARN")
     spark.sparkContext.setLogLevel("ERROR")
 
     # Construct a streaming DataFrame that reads from test-topic
@@ -28,7 +33,18 @@ if __name__ == "__main__":
         .option("kafka.bootstrap.servers", kafka_bootstrap_servers) \
         .option("subscribe", kafka_topic_name) \
         .option("startingOffsets", "latest") \
+
+        .option("kafka.sasl.mechanism", "PLAIN")\
+        .option("kafka.security.protocol", "SASL_SSL")\
+        .option("kafka.sasl.jaas.config", EH_SASL)\
+        .option("kafka.request.timeout.ms", "60000")\
+        .option("kafka.session.timeout.ms", "60000")\
+        .option("failOnDataLoss", "true")\
+        .option("partition", 1) \
+        .option("kafka.group.id", "grp1") \   #this i am not sure of
         .load()
+
+
 
     print("Printing Schema of trades_df: ")
     trades_df.printSchema()
