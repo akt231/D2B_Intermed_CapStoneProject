@@ -1,5 +1,7 @@
 py4j==0.10.9.7
 pyspark==3.5.0
+#matplotlib>=3.0
+# python3-scipy python3-simpy
 pandas>=1.0.5                      #Required for pandas API on Spark and Spark Connect; Optional for Spark SQL
 pyarrow>=4.0.0                     #Required for pandas API on Spark and Spark Connect; Optional for Spark SQL
 numpy>=1.15                        #Required for pandas API on Spark and MLLib DataFrame-based API; Optional for Spark SQL
