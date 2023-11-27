@@ -67,8 +67,8 @@ services:
     container_name: sparkm
     hostname: sparkm
     build:
-      context: ./spark
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./spark/Dockerfile
     command: bin/spark-class org.apache.spark.deploy.master.Master
     environment:
       - SPARK_MODE=master
@@ -85,15 +85,14 @@ services:
       - "7077:7077"
     #working_dir: /opt/spark-apps
     volumes:
-      - sprk_apps:/opt/spark-apps
       - sprk_data:/opt/spark-data
       
   sparkw:
     container_name: sparkw
     hostname: sparkw  
     build:
-      context: ./spark
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./spark/Dockerfile
     command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://sparkm:7077
     environment:
       - SPARK_MODE=worker
@@ -113,7 +112,6 @@ services:
       - "7001:7000"
     #working_dir: /opt/spark-apps 
     volumes:
-      - sprk_apps:/opt/spark-apps
       - sprk_data:/opt/spark-data
     #networks:
     #  datapipeline:
@@ -145,18 +143,6 @@ volumes:
       type: none
       o: bind
       device: ./kafka/scripts
-  #app_producer:
-  #  driver: local
-  #  driver_opts:
-  #    type: none
-  #    o: bind
-  #    device: ./producer
-  sprk_apps:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./spark/apps
   sprk_data:
     driver: local
     driver_opts:
