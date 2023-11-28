@@ -45,7 +45,7 @@ if __name__ == "__main__":
     spark.sparkContext.setLogLevel("ERROR")
 
     # Construct a streaming DataFrame that reads from trades-topic
-    trades_df = spark \
+    df_finnhub = spark \
         .readStream \
         .format("kafka") \
         .option("kafka.bootstrap.servers", kafka_bootstrap_servers) \
@@ -56,27 +56,54 @@ if __name__ == "__main__":
     print("Printing Schema of trades_df: ")
     trades_df.printSchema()
 
-    trades_df1 = trades_df.select("value", "timestamp")
-    print("Printing Schema of trades_df transform 01: ")
-    trades_df1.printSchema()
-
     # Define a schema for the orders data
     # Trade Conditions, price, symbol, timestamp, Volume, type of message
-    trades_schema_avro = open('/opt/spark-schemas/schema_trades.avsc', mode='r').read()
-
-    # {"c":null,"p":35112.76,"s":"BINANCE:BTCUSDT","t":1699311054111,"v":0.00126}],"type":"trade"}
-    trades_df2 = trades_df1\
-        .select(from_avro(col("value"), trades_schema_avro)\
-        .alias("Trades"), "timestamp")
-    print("Printing Schema of trades_df transform 02: ")
-    trades_df2.printSchema()
+    # explode the data from Avro
+    trades_schema = open('/opt/spark-schemas/schema_trades.avsc', mode='r').read()
+    df_expanded = df_finnhub\
+        .withColumn("avroData",from_avro(col("value"),trades_schema))\
+        .select("avroData.*")\
+        .select(explode("data"),"type")\
+        .select("col.*")
+    print("Printing Schema of df_expanded: ")
+    df_expanded.printSchema()  
     
     
-    trades_df3 = trades_df2.select("Trades.data.c", "Trades.data.p", "Trades.data.s",\
-                    "Trades.data.t", "Trades.data.v","timestamp")
-    print("Printing Schema of trades_df transform 03: ")
-    trades_df3.printSchema()
+    # rename columns and add proper timestamps
+    df_final = df_expanded\
+        .withColumn("uuid", makeUUID())\
+        .withColumnRenamed("c", "trade_conditions")\
+        .withColumnRenamed("p", "price")\
+        .withColumnRenamed("s", "symbol")\
+        .withColumnRenamed("t","trade_timestamp")\
+        .withColumnRenamed("v", "volume")\
+        .withColumn("trade_timestamp",(col("trade_timestamp") / 1000).cast("timestamp"))\
+        .withColumn("ingest_timestamp",current_timestamp().as("ingest_timestamp"))
     
+    print("Printing Schema of df_final: ")
+    df_final.printSchema()        
+            
+            
+    
+#    trades_df1 = trades_df.select("value", "timestamp")
+#    print("Printing Schema of trades_df transform 01: ")
+#    trades_df1.printSchema()
+#
+#
+#
+#    # {"c":null,"p":35112.76,"s":"BINANCE:BTCUSDT","t":1699311054111,"v":0.00126}],"type":"trade"}
+#    trades_df2 = trades_df1\
+#        .select(from_avro(col("value"), trades_schema_avro)\
+#        .alias("Trades"), "timestamp")
+#    print("Printing Schema of trades_df transform 02: ")
+#    trades_df2.printSchema()
+#    
+#    
+#    trades_df3 = trades_df2.select("Trades.data.c", "Trades.data.p", "Trades.data.s",\
+#                    "Trades.data.t", "Trades.data.v","timestamp")
+#    print("Printing Schema of trades_df transform 03: ")
+#    trades_df3.printSchema()
+#    
 #    trades_df4 = trades_df3.withColumnRenamed("c","Conditions") \
 #                    .withColumnRenamed("p","price")\
 #                    .withColumnRenamed("s","symbol")\
