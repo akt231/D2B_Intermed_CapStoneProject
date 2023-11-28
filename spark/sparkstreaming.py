@@ -53,8 +53,8 @@ if __name__ == "__main__":
         .option("startingOffsets", "latest") \
         .option("includeHeaders", "true") \
         .load()
-    print("Printing Schema of trades_df: ")
-    trades_df.printSchema()
+    print("Printing Schema of df_finnhub: ")
+    df_finnhub.printSchema()
 
     # Define a schema for the orders data
     # Trade Conditions, price, symbol, timestamp, Volume, type of message
@@ -70,18 +70,18 @@ if __name__ == "__main__":
     
     
     # rename columns and add proper timestamps
-    df_final = df_expanded\
-        .withColumn("uuid", makeUUID())\
-        .withColumnRenamed("c", "trade_conditions")\
-        .withColumnRenamed("p", "price")\
-        .withColumnRenamed("s", "symbol")\
-        .withColumnRenamed("t","trade_timestamp")\
-        .withColumnRenamed("v", "volume")\
-        .withColumn("trade_timestamp",(col("trade_timestamp") / 1000).cast("timestamp"))\
-        .withColumn("ingest_timestamp",current_timestamp().as("ingest_timestamp"))
-    
-    print("Printing Schema of df_final: ")
-    df_final.printSchema()        
+#    df_final = df_expanded\
+#        .withColumn("uuid", makeUUID())\
+#        .withColumnRenamed("c", "trade_conditions")\
+#        .withColumnRenamed("p", "price")\
+#        .withColumnRenamed("s", "symbol")\
+#        .withColumnRenamed("t","trade_timestamp")\
+#        .withColumnRenamed("v", "volume")\
+#        .withColumn("trade_timestamp",(col("trade_timestamp") / 1000).cast("timestamp"))\
+#        .withColumn("ingest_timestamp",current_timestamp().as("ingest_timestamp"))
+#    
+#    print("Printing Schema of df_final: ")
+#    df_final.printSchema()        
             
             
     
