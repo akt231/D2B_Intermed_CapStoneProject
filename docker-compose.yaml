@@ -3,6 +3,11 @@ version: '2'
 networks: 
   appnet:
     driver: bridge
+    ipam:
+        driver: default
+        config:
+            - subnet: "172.18.0.0/16"
+
 
 services:
   zookeeper:
@@ -19,7 +24,8 @@ services:
       #KAFKA_OPTS: "-Dzookeeper.admin.enableServer=false -Dzookeeper.4lw.commands.whitelist=ruok"
     restart: always
     networks: 
-      - appnet
+      appnet:
+        ipv4_address: 172.18.0.2
     volumes:
       - zk-data:/var/lib/zookeeper/data
       - zk-txn-logs:/var/lib/zookeeper/log
@@ -43,7 +49,8 @@ services:
     restart: always
     working_dir: /home/appuser/kafka/scripts
     networks: 
-      - appnet
+      appnet:
+        ipv4_address: 172.18.0.3
     volumes:
       - kafka-data:/var/lib/kafka/data
       - kafka-scripts:/home/appuser/kafka/scripts
@@ -53,7 +60,7 @@ services:
     hostname: producer
     build:
       context: .
-      dockerfile: ./producer/Dockerfile
+      dockerfile: ./Dockerfile_producer
     ports:
       - "1488:88"
     #volumes:
@@ -61,14 +68,15 @@ services:
     working_dir: /usr/src/app/producer
     restart: always
     networks: 
-      - appnet
+      appnet:
+        ipv4_address: 172.18.0.4
 
   sparkm:
     container_name: sparkm
     hostname: sparkm
     build:
       context: .
-      dockerfile: ./spark/Dockerfile
+      dockerfile: ./Dockerfile_spark
     command: bin/spark-class org.apache.spark.deploy.master.Master
     environment:
       - SPARK_MODE=master
@@ -79,20 +87,23 @@ services:
       - SPARK_SSL_ENABLED=no
       - SPARK_USER=spark
     networks: 
-      - appnet
+      appnet:
+        ipv4_address: 172.18.0.5
     ports:
       - "9090:8080"
       - "7077:7077"
     #working_dir: /opt/spark-apps
     volumes:
-      - sprk_data:/opt/spark-data
-      
+      - sprk_jars:/opt/spark_jars
+      - sprk_schemas:/opt/spark-schemas
+      - sprk_chkpts:/opt/spark-point
+
   sparkw:
     container_name: sparkw
     hostname: sparkw  
     build:
       context: .
-      dockerfile: ./spark/Dockerfile
+      dockerfile: ./Dockerfile_spark
     command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://sparkm:7077
     environment:
       - SPARK_MODE=worker
@@ -106,13 +117,16 @@ services:
       - SPARK_SSL_ENABLED=no
       - SPARK_USER=spark
     networks: 
-      - appnet
+      appnet:
+        ipv4_address: 172.18.0.6
     ports:
       - "9091:8080"
       - "7001:7000"
     #working_dir: /opt/spark-apps 
     volumes:
-      - sprk_data:/opt/spark-data
+      - sprk_jars:/opt/spark_jars
+      - sprk_schemas:/opt/spark-schemas
+      - sprk_chkpts:/opt/spark-point
     #networks:
     #  datapipeline:
     #    ipv4_address: 172.18.0.2
@@ -143,9 +157,22 @@ volumes:
       type: none
       o: bind
       device: ./kafka/scripts
-  sprk_data:
+  sprk_jars:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ./spark/data
+      device: ./spark/jars
+  sprk_chkpts:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./spark/chkpt
+  sprk_schemas:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./producer/schemas
+

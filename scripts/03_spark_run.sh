@@ -1,35 +1,29 @@
-/opt/bitnami/spark/bin/spark-submit \
-  --master spark://172.18.0.5:7077 \
-  --deploy-mode cluster \
-    
-    #--conf "spark.sql.shuffle.partitions=20000" \
-    ##--conf "spark.executor.memoryOverhead=5244" \ #not supported in pyspark apps
-    #--conf "spark.memory.fraction=0.8" \
-    #--conf "spark.memory.storageFraction=0.2" \
-    #--conf "spark.serializer=org.apache.spark.serializer.KryoSerializer" \
-    #--conf "spark.sql.files.maxPartitionBytes=168435456" \
-    #--conf "spark.dynamicAllocation.minExecutors=1" \
-    #--conf "spark.dynamicAllocation.maxExecutors=200" \
-    #--conf "spark.dynamicAllocation.enabled=true" \
-    #--conf "spark.executor.extraJavaOptions=-XX:+PrintGCDetails -XX:+PrintGCTimeStamps" \ 
-
-#  --driver-memory 2g \
-#  --executor-memory 2g \
-#  --executor-cores 2  \
-#  --jars  <comma separated dependencies>
-#  --class <main-class> \
-#    <application-jar> \
-#  [application-arguments]
-  --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 
-  /opt/spark-apps/sparkstreaming.py
-
-#run consumer
+#run consumer option1
 docker exec -it sparkm bash
 /opt/bitnami/spark/bin/spark-submit \
   --master spark://172.18.0.5:7077 \
   --deploy-mode client \
   --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.2.0, org.apache.spark:spark-avro_2.12:3.5.0
-  /opt/spark-python-config/sparkstreaming.py
+  /opt/spark-app/sparkstreaming.py
 
 
-docker-compose exec sparkm spark-submit --master spark://172.18.0.5:7077 --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.2.0,org.apache.spark:spark-avro_2.12:3.5.0 /opt/spark-python-config/sparkstreaming.py
+sudo docker cp  /home/akt/projects.files/projects.git/git.personal/D2B_Intermed_CapStoneProject/spark/start-spark.sh sparkm:/opt/spark-app/start-spark.sh
+
+
+#copy files between wsl-linux and container
+sudo docker cp sparkm:/opt/bitnami/spark/python/lib/pyspark.zip ~/downloads/pyspark.zip
+==============================================================================
+sudo docker cp /home/akt/projects.files/projects.git/git.personal/D2B_Intermed_CapStoneProject/spark/test01.py sparkm:/opt/spark-app/test01.py
+
+#run consumer|option2|test app
+docker-compose exec sparkm spark-submit --master spark://172.18.0.5:7077 --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,org.apache.spark:spark-avro_2.12:3.5.0 /opt/spark-app/test01.py
+==============================================================================
+sudo docker cp /home/akt/projects.files/projects.git/git.personal/D2B_Intermed_CapStoneProject/spark/test02_stream.py sparkm:/opt/spark-app/test02_stream.py
+
+#run consumer|option2|test app
+docker-compose exec sparkm spark-submit --master spark://172.18.0.5:7077 --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,org.apache.spark:spark-avro_2.12:3.5.0 /opt/spark-app/test02_stream.py
+==============================================================================
+sudo docker cp /home/akt/projects.files/projects.git/git.personal/D2B_Intermed_CapStoneProject/spark/sparkstreaming.py sparkm:/opt/spark-app/sparkstreaming.py
+
+#run consumer|option2|stream app
+docker-compose exec sparkm spark-submit --master spark://172.18.0.5:7077 --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,org.apache.spark:spark-avro_2.12:3.5.0 /opt/spark-app/sparkstreaming.py

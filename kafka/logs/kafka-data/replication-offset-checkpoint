@@ -1,6 +1,6 @@
 0
 51
-trades 0 62150
+trades 0 64593
 __consumer_offsets 29 0
 __consumer_offsets 43 0
 __consumer_offsets 0 0
@@ -15,7 +15,7 @@ __consumer_offsets 25 0
 __consumer_offsets 33 0
 __consumer_offsets 41 0
 __consumer_offsets 37 0
-__consumer_offsets 8 2
+__consumer_offsets 8 3
 __consumer_offsets 24 0
 __consumer_offsets 49 0
 __consumer_offsets 3 0
@@ -38,7 +38,7 @@ __consumer_offsets 18 0
 __consumer_offsets 7 0
 __consumer_offsets 48 0
 __consumer_offsets 22 0
-__consumer_offsets 46 0
+__consumer_offsets 46 3
 __consumer_offsets 23 0
 __consumer_offsets 42 3
 __consumer_offsets 28 0
