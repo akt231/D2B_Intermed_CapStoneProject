@@ -68,6 +68,8 @@ if __name__ == "__main__":
     print("Printing Schema of df_expanded: ")
     df_expanded.printSchema()  
     
+    #df_selected = df_expanded\
+    #    .select("")
     
     # rename columns and add proper timestamps
 #    df_final = df_expanded\

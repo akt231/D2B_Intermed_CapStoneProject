@@ -96,7 +96,7 @@ services:
     volumes:
       - sprk_jars:/opt/spark_jars
       - sprk_schemas:/opt/spark-schemas
-      - sprk_chkpts:/opt/spark-point
+      - sprk_chkpts:/opt/spark-chkpoint
 
   sparkw:
     container_name: sparkw
@@ -126,7 +126,7 @@ services:
     volumes:
       - sprk_jars:/opt/spark_jars
       - sprk_schemas:/opt/spark-schemas
-      - sprk_chkpts:/opt/spark-point
+      - sprk_chkpts:/opt/spark-chkpoint
     #networks:
     #  datapipeline:
     #    ipv4_address: 172.18.0.2
