@@ -10,3 +10,4 @@ numpy>=1.15                        #Required for pandas API on Spark and MLLib D
 grpcio>=1.48,<1.57                 #Required for Spark Connect
 grpcio-status>=1.48,<1.57          #Required for Spark Connect
 googleapis-common-protos ==1.56.4  #Required for Spark Connect
+snowflake-connector-python==3.5.0

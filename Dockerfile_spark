@@ -1,5 +1,5 @@
 # Using the Ubuntu image (our OS)
-FROM bitnami/spark:3.5
+FROM bitnami/spark:3.4.1
 
 
 USER root
@@ -7,7 +7,8 @@ USER root
 RUN apt-get update && apt-get install -y \
         curl vim wget software-properties-common \
         bash ssh net-tools ca-certificates iputils-ping \
-        python3 python3-pip
+        libc6 libssl-dev rust-libm-devel.noarch \
+        python3 python3-pip 
 
 RUN pip3 install --upgrade pip
 

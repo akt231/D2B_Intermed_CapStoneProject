@@ -163,6 +163,6 @@ cython_debug/
 
 
 #user logs
-/kafka/logs/kafka-data/
-/kafka/logs/zk-data/
-/kafka/logs/zk-txn-logs/
+kafka/logs/kafka-data/
+kafka/logs/zk-data/
+kafka/logs/zk-txn-logs/
