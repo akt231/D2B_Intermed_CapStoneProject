@@ -10,34 +10,46 @@ import time
 
 import utils.sfhelperfnc as sf
 #from utils.sfhelperfnc import sf_get_conn_ver, sf_conn_snowflake, sf_create_warehouse, sf_create_database, sf_create_schema, sf_create_table 
+
 #====================================================================
-# getting tokens from .env file
+# load env. var. from .env file
 #====================================================================
 from dotenv import load_dotenv
 load_dotenv()
+
+#====================================================================
+# getting kafka vars. from .env file
+#====================================================================
 #kafka tokens
 kafka_topic_name = os.getenv('d2b_kafka_producer_topic')
 kafka_server = os.getenv('d2b_kafka_server')
 kafka_port = os.getenv('d2b_kafka_port')
 kafka_bootstrap_servers = f'{kafka_server}:{kafka_port}'
+  
+#====================================================================
+# getting snowflake vars. from .env file
+#====================================================================
 #snowflakes tokens
-sf_user =       os.getenv('sf_user')            
+sf_account =    os.getenv('sf_account')            
 sf_url  =       os.getenv('sf_url')       
 sf_database =   os.getenv('sf_database')  
 sf_warehouse =  os.getenv('sf_warehouse')  
-sf_schema =     os.getenv('sf_schema')   
+sf_schema =     os.getenv('sf_schema') 
+sf_table_1 =     os.getenv('sf_table_1')  
+sf_table_2 =     os.getenv('sf_table_2')    
 sf_role =       os.getenv('sf_role')       
 sf_username =   os.getenv('sf_username')   
-sf_password =   os.getenv('sf_password')   
+sf_password =   os.getenv('sf_password') 
+
 
 
 if __name__ == "__main__":
 #====================================================================
-#Stream input Data
+#Kafka Env Variables print out
 #====================================================================
     demarcator = '=' * 35
     print(demarcator)
-    print("Stream Data Processing Application Started ...")
+    print("Kafka Environmental Variables ...")
     print(time.strftime("%Y-%m-%d %H:%M:%S"))
     print(f'Kafka Environmental Variable listings:')
     print(demarcator)
@@ -45,6 +57,27 @@ if __name__ == "__main__":
     print(f'kafka_server: {kafka_server}')
     print(f'kafka_port: {kafka_port}')
     print(f'kafka_bootstrap_servers: {kafka_bootstrap_servers}')
+    print(demarcator)
+
+#====================================================================
+#Snowflake Env Variables print out
+#====================================================================
+    demarcator = '=' * 35
+    print(demarcator)
+    print("Snowflake Environmental Variables ...")
+    print(time.strftime("%Y-%m-%d %H:%M:%S"))
+    print(f'Snowflake Environmental Variable listings:')
+    print(demarcator)
+    print(f'Snowflake account: {sf_account}')
+    print(f'Snowflake Url: {sf_url}')
+    print(f'Snowflake Database: {sf_database}')
+    print(f'Snowflake Warehouse: {sf_warehouse}')
+    print(f'Snowflake Schema: {sf_schema}')
+    print(f'Snowflake Table 01: {sf_table_1}')
+    print(f'Snowflake Table 02: {sf_table_2}')
+    print(f'Snowflake Role: {sf_role}')
+    print(f'Snowflake Username: {sf_username}')
+    print(f'Snowflake Password: {sf_password}')
     print(demarcator)
 
 #====================================================================
@@ -56,7 +89,7 @@ if __name__ == "__main__":
         .appName("D2B Streaming App") \
         .config("spark.streaming.stopGracefullyOnShutdown", True) \
         .config('spark.jars.packages', "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1") \
-        .config("spark.jar.packages",  "org.apache.spark:spark-avro_2.12:3.4.1") \        
+        .config("spark.jar.packages",  "org.apache.spark:spark-avro_2.12:3.4.1") \
         .config("spark.jars.packages", "net.snowflake:snowflake-jdbc:3.13.30") \
         .config("spark.jars.packages", "net.snowflake:snowflake_2.12:2.12.0-spark_3.4") \
         .config("spark.jar.packages",  "org.apache.hadoop:hadoop-aws:2.7.1")\
@@ -69,20 +102,6 @@ if __name__ == "__main__":
         .master("local[*]") \
         .getOrCreate()   
 #change spark version to 3.4 because of snowflakes
-#====================================================================
-#Provide Snowflake Connection Details
-#====================================================================
-    # Replace the placeholders with your Snowflake connection details
-    snowflake_options = {
-        "sfURL":        sf_url,
-        "sfDatabase":   sf_database,
-        "sfWarehouse":  sf_warehouse,
-        "sfSchema":     sf_schema,
-        "sfRole":       sf_role,
-        "sfUsername":   sf_username,
-        "sfPassword":   sf_password
-    }
-
 
 #====================================================================
 #Spark Context setup
@@ -157,20 +176,53 @@ if __name__ == "__main__":
         .withColumn("uuid", expr("uuid()")) \
         .withColumn("ingest_timestamp", current_timestamp()) \
         .withColumnRenamed("avg_price_volume_multiply", "price_volume_multiply")
+
+
            
 #====================================================================
-#Write to Snowflake Table
+#set checkpoint directory
 #====================================================================
     checkpointdir = '/opt/spark-chkpoint'
     spark.sparkContext.setCheckpointDir(checkpointdir)
-    
+
+#====================================================================
+#Provide Snowflake Connection Details/options
+#====================================================================
+# Snowflake connection parameters
+    sfparams = {
+      "sfURL" : "<account_identifier>.snowflakecomputing.com",
+      "sfUser" : "<user_name>",
+      "sfPassword" : "<password>",
+      "sfDatabase" : "<database>",
+      "sfSchema" : "<schema>",
+      "sfWarehouse" : "<warehouse>"
+    }
+
+    # Replace the placeholders with your Snowflake connection details
+    snowflake_options = {
+        "sfURL":        sf_url,
+        "sfDatabase":   sf_database,
+        "sfWarehouse":  sf_warehouse,
+        "sfSchema":     sf_schema,
+        "sfRole":       sf_role,
+        "sfUsername":   sf_username,
+        "sfPassword":   sf_password
+    }
+#====================================================================
+#Establish Snowflake connection and prep up snowflake for spark input
+#====================================================================
+    conn = sf.sf_snowflake_for_spark_setup()
+
+#====================================================================
+#Write to Snowflake Table
+#====================================================================
     #UNFINISHED********************************************************************
     # Write df_final as a stream to Snowflake
     query_finalDF = df_final.writeStream \
         .outputMode("append") \
         .format("net.snowflake.spark.snowflake") \
         .options(**snowflake_options) \
-        .option("dbtable", "your_target_table") \
+        .option("dbtable", sf_table_1) \
         .option("checkpointLocation", f'{checkpointdir}/finalDF') \
         .start()
 
@@ -180,7 +232,7 @@ if __name__ == "__main__":
         .outputMode("append") \
         .format("net.snowflake.spark.snowflake") \
         .options(**snowflake_options) \
-        .option("dbtable", "your_finalSummaryDF_table") \
+        .option("dbtable", sf_table_2) \
         .option("checkpointLocation", f'{checkpointdir}/finalSummaryDF') \
         .start()
 

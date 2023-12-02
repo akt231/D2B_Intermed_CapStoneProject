@@ -23,7 +23,10 @@ sudo docker cp /home/akt/projects.files/projects.git/git.personal/D2B_Intermed_C
 #run consumer|option2|test app
 docker-compose exec sparkm spark-submit --master spark://172.18.0.5:7077 --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,org.apache.spark:spark-avro_2.12:3.5.0 /opt/spark-app/test02_stream.py
 ==============================================================================
-sudo docker cp /home/akt/projects.files/projects.git/git.personal/D2B_Intermed_CapStoneProject/spark/sparkstreaming.py sparkm:/opt/spark-app/sparkstreaming.py
+cd /home/akt/projects.files/projects.git/git.personal/D2B_Intermed_CapStoneProject
+sudo docker cp ./spark/sparkstreaming.py sparkm:/opt/spark-app/sparkstreaming.py
+
+sudo docker cp ./spark/utils/. sparkm:/opt/spark-app/utils/
 
 #run consumer|option2|stream app
 docker-compose exec sparkm spark-submit --master spark://172.18.0.5:7077 --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,org.apache.spark:spark-avro_2.12:3.5.0 /opt/spark-app/sparkstreaming.py
