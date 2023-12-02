@@ -29,6 +29,10 @@ services:
     volumes:
       - zk-data:/var/lib/zookeeper/data
       - zk-txn-logs:/var/lib/zookeeper/log
+    securityContext:
+      - runAsUser: 0
+      - runAsGroup: 0
+
 
   broker:
     container_name: broker
@@ -54,7 +58,9 @@ services:
     volumes:
       - kafka-data:/var/lib/kafka/data
       - kafka-scripts:/home/appuser/kafka/scripts
-
+    securityContext:
+      - runAsUser: 0
+      - runAsGroup: 0
   producer:
     container_name: producer
     hostname: producer
@@ -127,10 +133,6 @@ services:
       - sprk_jars:/opt/spark_jars
       - sprk_schemas:/opt/spark-schemas
       - sprk_chkpts:/opt/spark-chkpoint
-    #networks:
-    #  datapipeline:
-    #    ipv4_address: 172.18.0.2
-
 
 volumes:
   zk-data:

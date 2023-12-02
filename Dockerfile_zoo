@@ -1,4 +1,8 @@
-FROM confluentinc/cp-zookeeper:latest
+FROM confluentinc/cp-zookeeper:6.2.0
+#confluentinc/cp-zookeeper:7.1.10
+USER root
+RUN chown appuser:appuser -R /var/lib/zookeeper/data
+USER appuser
 
 #RUN apt-get -y update && apt-get -y install curl
 #RUN apt-get -y update && apt-get -y install netcat
