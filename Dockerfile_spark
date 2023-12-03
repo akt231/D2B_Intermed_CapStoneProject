@@ -1,5 +1,5 @@
 # Using the Ubuntu image (our OS)
-FROM bitnami/spark:3.4.1
+FROM bitnami/spark:3.4
 
 
 USER root
@@ -35,6 +35,6 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 USER 1001
 ENV PYTHONUNBUFFERED 1
 
-#WORKDIR /opt/bitnami/spark
-WORKDIR /opt/spark-app
+WORKDIR /opt/bitnami/spark
+#WORKDIR /opt/spark-app
 CMD tail -f /tmp/java_opts.txt

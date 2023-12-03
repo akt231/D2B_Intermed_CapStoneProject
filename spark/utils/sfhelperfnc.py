@@ -1,9 +1,10 @@
-
 #!/usr/bin/env python
 import snowflake.connector
 from collections import OrderedDict
 from dotenv import load_dotenv
 load_dotenv()
+import os
+
 
 #====================================================================
 # Helper Functions
@@ -24,10 +25,10 @@ def print_env(search_string):
 
 def sf_get_conn_ver():
     # Gets the version
-    ctx = snowflake.connector.connect(
-        user=os.getenv('sf_user'),
-        password=os.getenv('sf_password'),
-        account=os.getenv('sf_username')
+    ctx = snowflake.connector.connect(\
+        user=os.getenv('sf_username'),\
+        password=os.getenv('sf_password'),\
+        account=os.getenv('sf_account')\
         )
     cs = ctx.cursor()
     try:

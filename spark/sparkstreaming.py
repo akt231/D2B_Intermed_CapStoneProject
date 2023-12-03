@@ -83,21 +83,17 @@ if __name__ == "__main__":
 #====================================================================
 #Setup Spark Session
 #====================================================================
+    import os
+    os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-streaming-kafka-0-10_2.12:3.4.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0 pyspark-shell'
     ## Set up the Spark session with config for both kafka and snowflake
     spark = SparkSession \
         .builder \
         .appName("D2B Streaming App") \
         .config("spark.streaming.stopGracefullyOnShutdown", True) \
-        .config('spark.jars.packages', "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1") \
-        .config("spark.jar.packages",  "org.apache.spark:spark-avro_2.12:3.4.1") \
-        .config("spark.jars.packages", "net.snowflake:snowflake-jdbc:3.13.30") \
+        .config('spark.jars.packages', "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0") \
+        .config("spark.jar.packages",  "org.apache.spark:spark-avro_2.12:3.4.0") \
+        .config("spark.jars.packages", "net.snowflake:snowflake-jdbc:3.13.29") \
         .config("spark.jars.packages", "net.snowflake:snowflake_2.12:2.12.0-spark_3.4") \
-        .config("spark.jar.packages",  "org.apache.hadoop:hadoop-aws:2.7.1")\
-        .config("spark.jar.packages",  "org.apache.httpcomponents:httpclient:4.3.6")\
-        .config("spark.jar.packages",  "org.apache.httpcomponents:httpcore:4.3.3")\
-        .config("spark.jar.packages",  "com.amazonaws:aws-java-sdk-core:1.10.27")\
-        .config("spark.jar.packages",  "com.amazonaws:aws-java-sdk-s3:1.10.27")\
-        .config("spark.jar.packages",  "com.amazonaws:aws-java-sdk-sts:1.10.27" )\
         .config("spark.sql.shuffle.partitions", 4) \
         .master("local[*]") \
         .getOrCreate()   
@@ -166,15 +162,15 @@ if __name__ == "__main__":
 #====================================================================
     # Another DataFrame with aggregates - running averages from last 15 seconds
     summaryDF = df_final \
-        .withColumn("price_volume_multiply", col("price") * col("volume")) \
+        .withColumn("price_volume_multiply", F.col("price") * F.col("volume")) \
         .withWatermark("trade_timestamp", "15 seconds") \
-        .groupBy("symbol", window("trade_timestamp", "15 seconds")) \
-        .agg(avg("price_volume_multiply").alias("avg_price_volume_multiply"))
+        .groupBy("symbol", F.window("trade_timestamp", "15 seconds")) \
+        .agg(F.avg("price_volume_multiply").alias("avg_price_volume_multiply"))
 
     # Rename columns in the DataFrame and add UUIDs before inserting into Cassandra
     finalSummaryDF = summaryDF \
-        .withColumn("uuid", expr("uuid()")) \
-        .withColumn("ingest_timestamp", current_timestamp()) \
+        .withColumn("uuid", F.expr("uuid()")) \
+        .withColumn("ingest_timestamp", F.current_timestamp()) \
         .withColumnRenamed("avg_price_volume_multiply", "price_volume_multiply")
 
 
@@ -182,20 +178,25 @@ if __name__ == "__main__":
 #====================================================================
 #set checkpoint directory
 #====================================================================
-    checkpointdir = '/opt/spark-chkpoint'
-    spark.sparkContext.setCheckpointDir(checkpointdir)
-
+    #checkpointdir = '/opt/spark-chkpoint'
+    #spark.sparkContext.setCheckpointDir(checkpointdir)
+    
+#====================================================================
+#Establish Snowflake connection and prep up snowflake for spark input
+#====================================================================
+    conn = sf.sf_snowflake_for_spark_setup()
+    
 #====================================================================
 #Provide Snowflake Connection Details/options
 #====================================================================
 # Snowflake connection parameters
     sfparams = {
-      "sfURL" : "<account_identifier>.snowflakecomputing.com",
-      "sfUser" : "<user_name>",
-      "sfPassword" : "<password>",
-      "sfDatabase" : "<database>",
-      "sfSchema" : "<schema>",
-      "sfWarehouse" : "<warehouse>"
+      "sfURL" : sf_url,
+      "sfUser" : sf_username,
+      "sfPassword" : sf_password,
+      "sfDatabase" : sf_database,
+      "sfSchema" : sf_schema,
+      "sfWarehouse" : sf_warehouse
     }
 
     # Replace the placeholders with your Snowflake connection details
@@ -208,10 +209,6 @@ if __name__ == "__main__":
         "sfUsername":   sf_username,
         "sfPassword":   sf_password
     }
-#====================================================================
-#Establish Snowflake connection and prep up snowflake for spark input
-#====================================================================
-    conn = sf.sf_snowflake_for_spark_setup()
 
 #====================================================================
 #Write to Snowflake Table
