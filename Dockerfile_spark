@@ -25,6 +25,7 @@ COPY ./spark/test01.py .
 COPY ./spark/test02_stream.py .
 COPY .env .
 COPY requirements_spark.txt .
+COPY ./rsa_key.p8 .
 COPY ./spark/utils /opt/spark-app/utils
 
 RUN chmod +x /opt/spark-app/*

@@ -8,7 +8,8 @@ import uuid
 import os
 import time
 
-import utils.sfhelperfnc as sf
+import utils.sfhelperfnc as sfhelp
+import utils.sfkeysfnc.py as sfkey
 #from utils.sfhelperfnc import sf_get_conn_ver, sf_conn_snowflake, sf_create_warehouse, sf_create_database, sf_create_schema, sf_create_table 
 
 #====================================================================
@@ -41,8 +42,8 @@ sf_role                 = os.getenv('sf_role')
 sf_int_stage            = os.getenv('sf_int_stage')    
 sf_username             = os.getenv('sf_username')   
 sf_password             = os.getenv('sf_password') 
-sf_pem_private_key      = os.getenv('sf_pem_private_key') 
-sf_pem_public_key       = os.getenv('sf_pem_public_key') 
+#sf_pem_private_key      = os.getenv('sf_pem_private_key') 
+#sf_pem_public_key       = os.getenv('sf_pem_public_key') 
 
 if __name__ == "__main__":
 #====================================================================
@@ -197,11 +198,12 @@ if __name__ == "__main__":
     tble_strg_2 = 'symbol varchar, window variant, price_volume_multiply double, uuid varchar, ingest_timestamp timestamp'
     tble_map_lst = [tble_strg_1, tble_strg_2]
     tble_nme_lst = [sf_table_finalDF, sf_table_finalSummaryDF]
-    conn = sf.sf_snowflake_for_spark_setup(tble_nme_lst, tble_map_lst)
+    conn = sfhelp.sf_snowflake_for_spark_setup(tble_nme_lst, tble_map_lst)
 
 #====================================================================
 #Provide Snowflake Connection Details/options
 #====================================================================
+    sf_pem_private_key = sfkey.sf_get_private_key_uncrypted()
     # Snowflake connection parameters
     # Replace the placeholders with your Snowflake connection details
     snowflake_options = {
