@@ -7,6 +7,7 @@ from pyspark.sql.types import StringType, FloatType, TimestampType
 import uuid
 import os
 import time
+import logging
 
 import utils.sfhelperfnc as sfhelp
 import utils.sfkeysfnc as sfkey

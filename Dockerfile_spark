@@ -28,7 +28,7 @@ COPY requirements_spark.txt .
 COPY ./rsa_key.p8 .
 COPY ./spark/utils /opt/spark-app/utils
 
-RUN chmod +x /opt/spark-app/*
+RUN chmod +rwx /opt/spark-app/*
 RUN /opt/spark-app/start-spark.sh
 
 RUN pip3 install --no-cache-dir -r requirements_spark.txt

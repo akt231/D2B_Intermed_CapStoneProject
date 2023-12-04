@@ -168,3 +168,4 @@ kafka/logs/zk-data/
 kafka/logs/zk-txn-logs/
 rsa_key.pem
 rsa_key.pub
+spark/chkpt/*
