@@ -166,3 +166,5 @@ cython_debug/
 kafka/logs/kafka-data/
 kafka/logs/zk-data/
 kafka/logs/zk-txn-logs/
+rsa_key.pem
+rsa_key.pub

@@ -30,18 +30,19 @@ kafka_bootstrap_servers = f'{kafka_server}:{kafka_port}'
 # getting snowflake vars. from .env file
 #====================================================================
 #snowflakes tokens
-sf_account =    os.getenv('sf_account')            
-sf_url  =       os.getenv('sf_url')       
-sf_database =   os.getenv('sf_database')  
-sf_warehouse =  os.getenv('sf_warehouse')  
-sf_schema =     os.getenv('sf_schema') 
-sf_table_1 =     os.getenv('sf_table_1')  
-sf_table_2 =     os.getenv('sf_table_2')    
-sf_role =       os.getenv('sf_role')       
-sf_username =   os.getenv('sf_username')   
-sf_password =   os.getenv('sf_password') 
-
-
+sf_account              = os.getenv('sf_account')            
+sf_url                  = os.getenv('sf_url')       
+sf_database             = os.getenv('sf_database')  
+sf_warehouse            = os.getenv('sf_warehouse')  
+sf_schema               = os.getenv('sf_schema') 
+sf_table_finalDF        = os.getenv('sf_table_finalDF')  
+sf_table_finalSummaryDF = os.getenv('sf_table_finalSummaryDF')    
+sf_role                 = os.getenv('sf_role')   
+sf_int_stage            = os.getenv('sf_int_stage')    
+sf_username             = os.getenv('sf_username')   
+sf_password             = os.getenv('sf_password') 
+sf_pem_private_key      = os.getenv('sf_pem_private_key') 
+sf_pem_public_key       = os.getenv('sf_pem_public_key') 
 
 if __name__ == "__main__":
 #====================================================================
@@ -73,9 +74,10 @@ if __name__ == "__main__":
     print(f'Snowflake Database: {sf_database}')
     print(f'Snowflake Warehouse: {sf_warehouse}')
     print(f'Snowflake Schema: {sf_schema}')
-    print(f'Snowflake Table 01: {sf_table_1}')
-    print(f'Snowflake Table 02: {sf_table_2}')
+    print(f'Snowflake Table 01: {sf_table_finalDF}')
+    print(f'Snowflake Table 02: {sf_table_finalSummaryDF}')
     print(f'Snowflake Role: {sf_role}')
+    print(f'Snowflake Stage: {sf_int_stage}')
     print(f'Snowflake Username: {sf_username}')
     print(f'Snowflake Password: {sf_password}')
     print(demarcator)
@@ -94,6 +96,7 @@ if __name__ == "__main__":
         .config("spark.jar.packages",  "org.apache.spark:spark-avro_2.12:3.4.0") \
         .config("spark.jars.packages", "net.snowflake:snowflake-jdbc:3.13.29") \
         .config("spark.jars.packages", "net.snowflake:snowflake_2.12:2.12.0-spark_3.4") \
+        .config("spark.jars.packages", "net.snowflake:spark-snowflake_2.12:2.13.0-spark_3.4") \
         .config("spark.sql.shuffle.partitions", 4) \
         .master("local[*]") \
         .getOrCreate()   
@@ -167,38 +170,39 @@ if __name__ == "__main__":
         .groupBy("symbol", F.window("trade_timestamp", "15 seconds")) \
         .agg(F.avg("price_volume_multiply").alias("avg_price_volume_multiply"))
 
+    print("Printing Schema of summaryDF  going to snowflake: ")
+    summaryDF.printSchema()   
+    
     # Rename columns in the DataFrame and add UUIDs before inserting into Cassandra
     finalSummaryDF = summaryDF \
         .withColumn("uuid", F.expr("uuid()")) \
         .withColumn("ingest_timestamp", F.current_timestamp()) \
         .withColumnRenamed("avg_price_volume_multiply", "price_volume_multiply")
 
+    print("Printing Schema of finalSummaryDF going to snowflake: ")
+    finalSummaryDF.printSchema()  
 
            
 #====================================================================
 #set checkpoint directory
 #====================================================================
-    #checkpointdir = '/opt/spark-chkpoint'
+    checkpointdir = '/opt/spark-chkpoint'
+    spark.conf.set("spark.sql.streaming.checkpointLocation", checkpointdir)
     #spark.sparkContext.setCheckpointDir(checkpointdir)
     
 #====================================================================
 #Establish Snowflake connection and prep up snowflake for spark input
 #====================================================================
-    conn = sf.sf_snowflake_for_spark_setup()
-    
+    tble_strg_1 = 'symbol varchar, window variant, avg_price_volume_multiply double'
+    tble_strg_2 = 'symbol varchar, window variant, price_volume_multiply double, uuid varchar, ingest_timestamp timestamp'
+    tble_map_lst = [tble_strg_1, tble_strg_2]
+    tble_nme_lst = [sf_table_finalDF, sf_table_finalSummaryDF]
+    conn = sf.sf_snowflake_for_spark_setup(tble_nme_lst, tble_map_lst)
+
 #====================================================================
 #Provide Snowflake Connection Details/options
 #====================================================================
-# Snowflake connection parameters
-    sfparams = {
-      "sfURL" : sf_url,
-      "sfUser" : sf_username,
-      "sfPassword" : sf_password,
-      "sfDatabase" : sf_database,
-      "sfSchema" : sf_schema,
-      "sfWarehouse" : sf_warehouse
-    }
-
+    # Snowflake connection parameters
     # Replace the placeholders with your Snowflake connection details
     snowflake_options = {
         "sfURL":        sf_url,
@@ -206,33 +210,45 @@ if __name__ == "__main__":
         "sfWarehouse":  sf_warehouse,
         "sfSchema":     sf_schema,
         "sfRole":       sf_role,
-        "sfUsername":   sf_username,
+        "sfUser":   sf_username,
+        "pem_private_key": sf_pem_private_key,
+        "tracing" : "all",
         "sfPassword":   sf_password
+        
     }
-
+#"sfUsername":   sf_username,
 #====================================================================
 #Write to Snowflake Table
 #====================================================================
-    #UNFINISHED********************************************************************
     # Write df_final as a stream to Snowflake
     query_finalDF = df_final.writeStream \
         .outputMode("append") \
         .format("net.snowflake.spark.snowflake") \
         .options(**snowflake_options) \
-        .option("dbtable", sf_table_1) \
+        .option("dbtable", sf_table_finalDF) \
         .option("checkpointLocation", f'{checkpointdir}/finalDF') \
+        .option("streaming_stage", sf_int_stage)\
+        .trigger(processingTime='30 seconds')\
         .start()
 
-    #UNFINISHED********************************************************************
+    # Log streaming query details
+    logging.info(f"Streaming query details: {query_finalDF.explain()}")
+
+
+
     # Write finalSummaryDF as a stream to Snowflake
     query_finalSummaryDF = finalSummaryDF.writeStream \
         .outputMode("append") \
         .format("net.snowflake.spark.snowflake") \
         .options(**snowflake_options) \
-        .option("dbtable", sf_table_2) \
+        .option("dbtable", sf_table_finalSummaryDF) \
         .option("checkpointLocation", f'{checkpointdir}/finalSummaryDF') \
+        .option("streaming_stage", "stream_stage")\
+        .trigger(processingTime='30 seconds')\
         .start()
 
+    # Log streaming query details
+    logging.info(f"Streaming query details: {query_finalSummaryDF.explain()}")
 #====================================================================
 #terminate computations
 #====================================================================
