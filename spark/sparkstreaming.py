@@ -9,7 +9,7 @@ import os
 import time
 
 import utils.sfhelperfnc as sfhelp
-import utils.sfkeysfnc.py as sfkey
+import utils.sfkeysfnc as sfkey
 #from utils.sfhelperfnc import sf_get_conn_ver, sf_conn_snowflake, sf_create_warehouse, sf_create_database, sf_create_schema, sf_create_table 
 
 #====================================================================

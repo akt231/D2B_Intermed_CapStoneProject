@@ -5,6 +5,7 @@ from pyspark.sql import SQLContext
 from pyspark.sql.types import *
 from pyspark import SparkConf, SparkContext
 import re
+import os
 
 #====================================================================
 # load env. var. from .env file
