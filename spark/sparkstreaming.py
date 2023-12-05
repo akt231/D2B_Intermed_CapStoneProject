@@ -204,7 +204,8 @@ if __name__ == "__main__":
 #====================================================================
 #Provide Snowflake Connection Details/options
 #====================================================================
-    sf_pem_private_key = sfkey.sf_get_private_key_uncrypted()
+    #sf_pem_private_key = sfkey.sf_get_private_key_uncrypted()
+    sf_pem_private_key = '/opt/spark-app/rsa_key.p8'
     # Snowflake connection parameters
     # Replace the placeholders with your Snowflake connection details
     snowflake_options = {
@@ -219,51 +220,67 @@ if __name__ == "__main__":
         "sfPassword":   sf_password
         
     }
-#"sfUsername":   sf_username,
 #====================================================================
-#Write to Snowflake Table
+#Write to console 
 #====================================================================
-    # Write df_final as a stream to Snowflake
-    query_finalDF = df_final.writeStream \
-        .outputMode("append") \
-        .format("net.snowflake.spark.snowflake") \
-        .options(**snowflake_options) \
-        .option("dbtable", sf_table_finalDF) \
-        .option("checkpointLocation", f'{checkpointdir}/finalDF') \
-        .option("streaming_stage", sf_int_stage)\
-        .trigger(processingTime='30 seconds')\
-        .start()
+    console_finalDF = df_final \
+    .writeStream \
+    .outputMode("append") \
+    .format("console") \
+    .start()
 
-    # Log streaming query details
-    logging.info(f"Streaming query details: {query_finalDF.explain()}")
+    console_finalDF.awaitTermination()
+
+    console_finalSummaryDF = finalSummaryDF \
+    .writeStream \
+    .outputMode("append") \
+    .format("console") \
+    .start()
+
+    console_finalSummaryDF.awaitTermination()
 
 
 
-    # Write finalSummaryDF as a stream to Snowflake
-    query_finalSummaryDF = finalSummaryDF.writeStream \
-        .outputMode("append") \
-        .format("net.snowflake.spark.snowflake") \
-        .options(**snowflake_options) \
-        .option("dbtable", sf_table_finalSummaryDF) \
-        .option("checkpointLocation", f'{checkpointdir}/finalSummaryDF') \
-        .option("streaming_stage", "stream_stage")\
-        .trigger(processingTime='30 seconds')\
-        .start()
-
-    # Log streaming query details
-    logging.info(f"Streaming query details: {query_finalSummaryDF.explain()}")
+##====================================================================
+##Write to Snowflake Table
+##====================================================================
+#    # Write df_final as a stream to Snowflake
+#    query_finalDF = df_final.writeStream \
+#        .outputMode("append") \
+#        .format("net.snowflake.spark.snowflake") \
+#        .options(**snowflake_options) \
+#        .option("dbtable", sf_table_finalDF) \
+#        .option("checkpointLocation", f'{checkpointdir}/finalDF') \
+#        .option("streaming_stage", sf_int_stage)\
+#        .trigger(processingTime='30 seconds')\
+#        .start()
+#
+#    # Log streaming query details
+#    logging.info(f"Streaming query details: {query_finalDF.explain()}")
+#
+#
+#
+#    # Write finalSummaryDF as a stream to Snowflake
+#    query_finalSummaryDF = finalSummaryDF.writeStream \
+#        .outputMode("append") \
+#        .format("net.snowflake.spark.snowflake") \
+#        .options(**snowflake_options) \
+#        .option("dbtable", sf_table_finalSummaryDF) \
+#        .option("checkpointLocation", f'{checkpointdir}/finalSummaryDF') \
+#        .option("streaming_stage", "stream_stage")\
+#        .trigger(processingTime='30 seconds')\
+#        .start()
+#
+#    # Log streaming query details
+#    logging.info(f"Streaming query details: {query_finalSummaryDF.explain()}")
+ 
+#    # Await termination of the streaming query
+#    query_finalDF.awaitTermination()
+#    query_finalSummaryDF.awaitTermination()    
 #====================================================================
-#terminate computations
+# Stop the Spark session
 #====================================================================
-    # Await termination of the streaming query
-    query_finalDF.awaitTermination()
-    query_finalSummaryDF.awaitTermination()
-
-    # Stop the Spark session
     spark.stop()
 
     print("Stream Data Processing Application Completed.")
     
-#Replace the placeholders (<your_snowflake_url>, <your_database>, <your_warehouse>, <your_schema>, <your_role>, <your_username>, <your_password>, your_target_table, path/to/your/streaming/data, path/to/checkpoint/dir) with your Snowflake connection details, the specific target table you want to write to, the path to your streaming data source (e.g., a folder containing CSV files), and the checkpoint directory.
-#Make sure to replace "net.snowflake:snowflake-jdbc:<version>" with the appropriate version of the Snowflake JDBC driver that you are using.
-#Note: Structured Streaming requires a checkpoint location to be specified. It is used to store the metadata and state information for fault-tolerance. Ensure that the specified checkpoint directory is a durable storage location.

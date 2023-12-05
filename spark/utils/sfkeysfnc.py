@@ -30,4 +30,5 @@ def sf_get_private_key_uncrypted():
     
     pkb = pkb.decode("UTF-8")
     pkb = re.sub("-*(BEGIN|END) PRIVATE KEY-*\n","",pkb).replace("\n","")
+    print(pkb)
     return pkb
