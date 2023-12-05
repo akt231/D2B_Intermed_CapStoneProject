@@ -244,6 +244,20 @@ if __name__ == "__main__":
 ##====================================================================
 ##Write to Snowflake Table
 ##====================================================================
+#dataDF.writeStream
+#.option("checkpointLocation", "path-for-checkpoint')
+#.foreachBatch { (batchDF: Dataset[Row], batchId: Long) =>
+#batchDF.write
+#.format("snowflake")
+#.options(sfOptions)
+#.option("dbtable", "demokinesisstream")
+#.mode(SaveMode.Append)
+#.save()
+#}
+
+#https://community.snowflake.com/s/question/0D5Do00000hJGPbKAO/avoid-create-table-if-not-exists-command-using-python-snowflake-connector
+
+
 #    # Write df_final as a stream to Snowflake
 #    query_finalDF = df_final.writeStream \
 #        .outputMode("append") \
