@@ -12,7 +12,7 @@ import os
 #print env variables
 def print_env(search_string):
     #list stored variables
-    print('Environment:')
+    print(f'Environment variables containing {search_string}:')
     keylst =os.environ.keys()
     tokens_exist = 0
     for k, v in os.environ.items():

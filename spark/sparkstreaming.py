@@ -102,7 +102,6 @@ if __name__ == "__main__":
         .config("spark.sql.shuffle.partitions", 4) \
         .master("local[*]") \
         .getOrCreate()   
-#change spark version to 3.4 because of snowflakes
 
 #====================================================================
 #Spark Context setup
@@ -131,7 +130,7 @@ if __name__ == "__main__":
     df_finnhub.printSchema()
 
     # is data streaming?
-    print(f'data streaming right now?:{df_finnhub.isStreaming}')
+    print(f'kafka data streaming from finnhub right now?:{df_finnhub.isStreaming}')
 
 #====================================================================
 #Cleanup Dataframe from Kafka Stream
@@ -218,31 +217,71 @@ if __name__ == "__main__":
         "pem_private_key": sf_pem_private_key,
         "tracing" : "all",
         "sfPassword":   sf_password
-        
-    }
+        }
+    
 #====================================================================
-#Write to console 
+#Write to console: just testing to see visuals of stream
 #====================================================================
-    console_finalDF = df_final \
-    .writeStream \
-    .outputMode("append") \
-    .format("console") \
-    .start()
+#    console_finalDF = df_final \
+#    .writeStream \
+#    .outputMode("append") \
+#    .format("console") \
+#    .start()
+#
+#    console_finalDF.awaitTermination()
+#
+#    console_finalSummaryDF = finalSummaryDF \
+#    .writeStream \
+#    .outputMode("append") \
+#    .format("console") \
+#    .start()
+#
+#    console_finalSummaryDF.awaitTermination()
 
-    console_finalDF.awaitTermination()
 
-    console_finalSummaryDF = finalSummaryDF \
-    .writeStream \
-    .outputMode("append") \
-    .format("console") \
-    .start()
+#====================================================================
+#create for each batch functions
+#====================================================================
+    def foreach_batch_finalDF(df, epoch_id):
+           df.write\
+                .format("net.snowflake.spark.snowflake")\
+                .options(**snowflake_options)\
+                .option("dbtable", sf_table_finalDF)\
+                .mode('append')\
+                .save()
 
-    console_finalSummaryDF.awaitTermination()
+    def foreach_batch_finalSummaryDF(df, epoch_id):
+           df.write\
+                .format("net.snowflake.spark.snowflake")\
+                .options(**snowflake_options)\
+                .option("dbtable", sf_table_finalSummaryDF)\
+                .mode('append')\
+                .save()
 
+#====================================================================
+#Write to Snowflake Table option 1
+#====================================================================
+    query_finalDF = df_final.writeStream.outputMode('append')\
+        .trigger(processingTime='10 seconds')\
+        .option("checkpointLocation", f'{checkpointdir}/finalDF') \
+        .foreachBatch(foreach_batch_finalDF)\
+        .start()
 
+    query_finalSummaryDF = df_final.writeStream.outputMode('append')\
+        .trigger(processingTime='10 seconds')\
+        .option("checkpointLocation", f'{checkpointdir}/finalDF') \
+        .foreachBatch(foreach_batch_finalSummaryDF)\
+        .start()        
+    
+    # Log streaming query details
+    logging.info(f"Streaming query details for query_finalDF: {query_finalDF.explain()}")
+    logging.info(f"Streaming query details for query_finalSummaryDF: {query_finalSummaryDF.explain()}")
+    
+    query_finalDF.awaitTermination()
+    query_finalSummaryDF.awaitTermination()
 
 ##====================================================================
-##Write to Snowflake Table
+##Write to Snowflake Table option 2
 ##====================================================================
 #dataDF.writeStream
 #.option("checkpointLocation", "path-for-checkpoint')

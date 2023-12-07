@@ -8,4 +8,5 @@ docker exec -it broker bash /bin/kafka-server-start /etc/kafka/server.properties
 docker exec -it broker bash /bin/kafka-console-producer --topic trades --bootstrap-server broker:29092
 
 #run consumer
-docker exec -it broker bash /bin/kafka-console-consumer --topic trades --bootstrap-server broker:29092 --from-beginning
+docker exec -it broker bash /bin/kafka-console-consumer --topic trades --bootstrap-server broker:29092 
+--from-beginning
