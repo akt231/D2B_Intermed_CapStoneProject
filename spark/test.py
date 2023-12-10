@@ -1,3 +1,5 @@
+from pyspark import SparkConf, SparkContext
+from pyspark.sql import SQLContext
 from pyspark.sql import SparkSession
 from pyspark.sql.avro.functions import from_avro
 from pyspark.sql import DataFrame
@@ -32,55 +34,32 @@ sf_role                 = os.getenv('sf_role')
 sf_int_stage            = os.getenv('sf_int_stage')    
 sf_username             = os.getenv('sf_username')   
 sf_password             = os.getenv('sf_password') 
-#sf_pem_private_key      = os.getenv('sf_pem_private_key') 
-#sf_pem_public_key       = os.getenv('sf_pem_public_key') 
+
+print(f'scorched earth alaysin hell:{sf_table}')
 
 if __name__ == "__main__":
 #====================================================================
-#Snowflake Env Variables print out
-#====================================================================
-    demarcator = '=' * 35
-    print(demarcator)
-    print("Snowflake Environmental Variables ...")
-    print(time.strftime("%Y-%m-%d %H:%M:%S"))
-    print(f'Snowflake Environmental Variable listings:')
-    print(demarcator)
-    print(f'Snowflake account: {sf_account}')
-    print(f'Snowflake Url: {sf_url}')
-    print(f'Snowflake Database: {sf_database}')
-    print(f'Snowflake Warehouse: {sf_warehouse}')
-    print(f'Snowflake Schema: {sf_schema}')
-    print(f'Snowflake Table: {sf_table}')
-    print(f'Snowflake Role: {sf_role}')
-    print(f'Snowflake Stage: {sf_int_stage}')
-    print(f'Snowflake Username: {sf_username}')
-    print(f'Snowflake Password: {sf_password}')
-    print(demarcator)
-
-#====================================================================
 #Setup Spark Session
 #====================================================================
-    import os
-    os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-streaming-kafka-0-10_2.12:3.4.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0 pyspark-shell'
-    ## Set up the Spark session with config for both kafka and snowflake
-    spark = SparkSession \
-        .builder \
-        .appName("D2B Streaming App") \
-        .config("spark.streaming.stopGracefullyOnShutdown", True) \
-        .config('spark.jars.packages', "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0") \
-        .config("spark.jar.packages",  "org.apache.spark:spark-avro_2.12:3.4.0") \
-        .config("spark.jars.packages", "net.snowflake:snowflake-jdbc:3.13.29") \
-        .config("spark.jars.packages", "net.snowflake:snowflake_2.12:2.12.0-spark_3.4") \
-        .config("spark.jars.packages", "net.snowflake:spark-snowflake_2.12:2.13.0-spark_3.4") \
-        .config("spark.sql.shuffle.partitions", 4) \
-        .master("local[*]") \
-        .getOrCreate()   
+    sc = SparkContext("local", "Simple App")
+    spark = SQLContext(sc)
+    spark_conf = SparkConf().setMaster('local').setAppName('ShitApp')
+    
+    #spark = SparkSession \
+    #    .builder \
+    #    .appName("D2B Testing App") \
+    #    .config("spark.jars.packages", "net.snowflake:snowflake-jdbc:3.13.29") \
+    #    .config("spark.jars.packages", "net.snowflake:snowflake_2.12:2.12.0-spark_3.4") \
+    #    .config("spark.jars.packages", "net.snowflake:spark-snowflake_2.12:2.13.0-spark_3.4") \
+    #    .config("spark.sql.shuffle.partitions", 4) \
+    #    .master("local[*]") \
+    #    .getOrCreate()   
 
 #====================================================================
 #Spark Context setup
 #====================================================================    
     # Spark Context created internlly
-    print(spark.sparkContext)
+    print(f'Spark Context: {spark.sparkContext}')
     print("Spark App Name : "+ spark.sparkContext.appName)
 
     # Reduce logging
@@ -110,9 +89,12 @@ if __name__ == "__main__":
 #====================================================================
 #Establish Snowflake connection and prep up snowflake for spark input
 #====================================================================
+    tble_nme_lst = [sf_table]
     tble_strg_1 = 'id integer, name varchar, age integer, city varchar'
     tble_map_lst = [tble_strg_1]
-    tble_nme_lst = [df]
+    print(f'shithead shit: {sf_table}')
+    sfhelp.print_strg('table name list', tble_nme_lst)
+    sfhelp.print_strg('table mapping', tble_map_lst)
     conn = sfhelp.sf_snowflake_for_spark_setup(tble_nme_lst, tble_map_lst)
 
 #====================================================================
@@ -121,7 +103,6 @@ if __name__ == "__main__":
     #sf_pem_private_key = sfkey.sf_get_private_key_uncrypted()
     sf_pem_private_key = '/opt/spark-app/rsa_key.p8'
     # Snowflake connection parameters
-    # Replace the placeholders with your Snowflake connection details
     snowflake_options = {
         "sfURL":        sf_url,
         "sfDatabase":   sf_database,
@@ -133,7 +114,8 @@ if __name__ == "__main__":
         "tracing" : "all",
         "sfPassword":   sf_password
         }
-    
+
+    SNOWFLAKE_SOURCE_NAME = "net.snowflake.spark.snowflake"    
 #====================================================================
 #Write to console: just testing to see visuals of stream
 #====================================================================
@@ -150,18 +132,6 @@ if __name__ == "__main__":
 #send df to snowflake
 #====================================================================
 # Write DataFrame to Snowflake table
-    #df.write \
-    #    .format('snowflake') \
-    #    .option('dbtable', 'table_name') \
-    #    #.option('user', os.environ['SNOWFLAKE_USER']) \
-    #    #.option('password', os.environ['SNOWFLAKE_PASSWORD']) \
-    #    #.option('account', os.environ['SNOWFLAKE_ACCOUNT']) \
-    #    #.option('database', os.environ['SNOWFLAKE_DATABASE']) \
-    #    #.option('schema', os.environ['SNOWFLAKE_SCHEMA']) \
-    #    #.option('warehouse', os.environ['SNOWFLAKE_WAREHOUSE']) \
-    #    .mode('overwrite') \
-    #    .save()
-
     df.write\
         .format("net.snowflake.spark.snowflake")\
         .options(**snowflake_options)\
@@ -173,17 +143,6 @@ if __name__ == "__main__":
 #Read from Snowflake Table
 #====================================================================
     # Read the data from the Snowflake table
-    #df_from_snowflake = spark.read \
-    #    .format('snowflake') \
-    #    .option('dbtable', 'table_name') \
-    #    .option('user', os.environ['SNOWFLAKE_USER']) \
-    #    .option('password', os.environ['SNOWFLAKE_PASSWORD']) \
-    #    .option('account', os.environ['SNOWFLAKE_ACCOUNT']) \
-    #    .option('database', os.environ['SNOWFLAKE_DATABASE']) \
-    #    .option('schema', os.environ['SNOWFLAKE_SCHEMA']) \
-    #    .option('warehouse', os.environ['SNOWFLAKE_WAREHOUSE']) \
-    #    .load()
-
     df_from_snowflake = spark.read \
         .format("net.snowflake.spark.snowflake")\
         .option('dbtable', 'sf_table') \

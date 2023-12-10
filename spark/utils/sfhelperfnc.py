@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 load_dotenv()
 import os
 
-
 #====================================================================
 # Helper Functions
 #====================================================================
@@ -99,9 +98,13 @@ def sf_use_schema(conn, db_name, schma_name):
 
 def sf_create_table(conn, table_name, table_strg):
     # conn.cursor().execute("CREATE OR REPLACE TABLE "  "test_table(col1 integer, col2 string, col3 integer)")
+    print('*' * 50)
+    print(f'table name: {table_name}')
+    print(f'table mapping: {table_strg}')
     execute_comm_1 = f'{table_name} ({table_strg})'
     execute_comm = f'CREATE OR REPLACE TABLE {execute_comm_1}'   
     print(f'executing init table: {execute_comm}')
+    print('*' * 50)
     conn.cursor().execute(execute_comm)
 
 def sf_insert_in_table(tble_nme, col_lst, val_lst):
@@ -145,11 +148,16 @@ def sf_create_stage(conn, sf_int_stage):
     print(f'executing use schema: {execute_comm}')
     conn.cursor().execute(execute_comm)    
 
-
+def print_strg(label_strg = '', strg_lst=[]):
+    print(f'{label_strg}:=====================')
+    for strg_item in strg_lst:
+        print(strg_item)
+    
 def sf_snowflake_for_spark_setup(tble_nme_lst, tble_map_lst):
     print_env('sf')
     
     sf_get_conn_ver()
+    print(f'Setting up Snowflake Infrastructure *************')
     conn = sf_conn_snowflake()
     #sf_set_user_pub_key(conn) need to do this manually in snowflake
     
@@ -172,5 +180,4 @@ def sf_snowflake_for_spark_setup(tble_nme_lst, tble_map_lst):
     sf_int_stage = os.getenv('sf_int_stage')
     sf_create_stage(conn, sf_int_stage)
     
-    return conn
-    
+    return conn    
