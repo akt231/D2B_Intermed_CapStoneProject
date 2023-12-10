@@ -99,7 +99,7 @@ def sf_use_schema(conn, db_name, schma_name):
 
 def sf_create_table(conn, table_name, table_strg):
     # conn.cursor().execute("CREATE OR REPLACE TABLE "  "test_table(col1 integer, col2 string, col3 integer)")
-    execute_comm_1 = f'table_name ({table_strg})'
+    execute_comm_1 = f'{table_name} ({table_strg})'
     execute_comm = f'CREATE OR REPLACE TABLE {execute_comm_1}'   
     print(f'executing init table: {execute_comm}')
     conn.cursor().execute(execute_comm)

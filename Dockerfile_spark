@@ -1,5 +1,5 @@
 # Using the Ubuntu image (our OS)
-FROM bitnami/spark:3.4
+FROM bitnami/spark:3.4.0
 
 
 USER root
@@ -21,8 +21,7 @@ WORKDIR /opt/spark-app
 COPY ./spark/run-spark-app.sh .
 COPY ./spark/start-spark.sh .
 COPY ./spark/sparkstreaming.py .
-COPY ./spark/test01.py .
-COPY ./spark/test02_stream.py .
+COPY ./spark/test.py .
 COPY .env .
 COPY requirements_spark.txt .
 COPY ./rsa_key.p8 .
