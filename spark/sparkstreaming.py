@@ -36,57 +36,18 @@ sf_url                  = os.getenv('sf_url')
 sf_database             = os.getenv('sf_database')  
 sf_warehouse            = os.getenv('sf_warehouse')  
 sf_schema               = os.getenv('sf_schema') 
-sf_table_finalDF        = os.getenv('sf_table_finalDF')  
+sf_table_detailedDF     = os.getenv('sf_table_detailedDF')  
 sf_table_finalSummaryDF = os.getenv('sf_table_finalSummaryDF')    
 sf_role                 = os.getenv('sf_role')   
 sf_int_stage            = os.getenv('sf_int_stage')    
 sf_username             = os.getenv('sf_username')   
 sf_password             = os.getenv('sf_password') 
-#sf_pem_private_key      = os.getenv('sf_pem_private_key') 
-#sf_pem_public_key       = os.getenv('sf_pem_public_key') 
+
 
 if __name__ == "__main__":
 #====================================================================
-#Kafka Env Variables print out
-#====================================================================
-    demarcator = '=' * 35
-    print(demarcator)
-    print("Kafka Environmental Variables ...")
-    print(time.strftime("%Y-%m-%d %H:%M:%S"))
-    print(f'Kafka Environmental Variable listings:')
-    print(demarcator)
-    print(f'kafka_topic_name: {kafka_topic_name}')
-    print(f'kafka_server: {kafka_server}')
-    print(f'kafka_port: {kafka_port}')
-    print(f'kafka_bootstrap_servers: {kafka_bootstrap_servers}')
-    print(demarcator)
-
-#====================================================================
-#Snowflake Env Variables print out
-#====================================================================
-    demarcator = '=' * 35
-    print(demarcator)
-    print("Snowflake Environmental Variables ...")
-    print(time.strftime("%Y-%m-%d %H:%M:%S"))
-    print(f'Snowflake Environmental Variable listings:')
-    print(demarcator)
-    print(f'Snowflake account: {sf_account}')
-    print(f'Snowflake Url: {sf_url}')
-    print(f'Snowflake Database: {sf_database}')
-    print(f'Snowflake Warehouse: {sf_warehouse}')
-    print(f'Snowflake Schema: {sf_schema}')
-    print(f'Snowflake Table 01: {sf_table_finalDF}')
-    print(f'Snowflake Table 02: {sf_table_finalSummaryDF}')
-    print(f'Snowflake Role: {sf_role}')
-    print(f'Snowflake Stage: {sf_int_stage}')
-    print(f'Snowflake Username: {sf_username}')
-    print(f'Snowflake Password: {sf_password}')
-    print(demarcator)
-
-#====================================================================
 #Setup Spark Session
 #====================================================================
-    import os
     os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-streaming-kafka-0-10_2.12:3.4.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0 pyspark-shell'
     ## Set up the Spark session with config for both kafka and snowflake
     spark = SparkSession \
@@ -125,8 +86,8 @@ if __name__ == "__main__":
         .option("startingOffsets", "latest") \
         .option("includeHeaders", "true") \
         .load()
-    print("Printing Schema of df_finnhub: ")
-    df_finnhub.printSchema()
+    #print("Printing Schema of df_finnhub: ")
+    #df_finnhub.printSchema()
 
     # is data streaming?
     print(f'kafka data streaming from finnhub right now?:{df_finnhub.isStreaming}')
@@ -143,44 +104,47 @@ if __name__ == "__main__":
         .select("avroData.*")\
         .select(F.explode("data"),"type")\
         .select("col.*")
-    print("Printing Schema of df_expanded: ")
-    df_expanded.printSchema()  
+    #print("Printing Schema of df_expanded: ")
+    #df_expanded.printSchema()  
  
     # rename columns and add proper timestamps
-    df_final = df_expanded\
+    df_detailed = df_expanded\
         .withColumn("uuid", F.expr("uuid()")) \
-        .withColumnRenamed("c", "trade_conditions")\
         .withColumnRenamed("p", "price")\
         .withColumnRenamed("s", "symbol")\
         .withColumnRenamed("t","trade_timestamp")\
         .withColumnRenamed("v", "volume")\
         .withColumn("trade_timestamp", (F.col("trade_timestamp") / 1000).cast("timestamp")) \
-        .withColumn("ingest_timestamp", F.current_timestamp().cast(StringType()))
+        .withColumn("ingest_timestamp", F.current_timestamp().cast(StringType()))\
+        .drop("c")\
+        .na.drop()
     
-    print("Printing Schema of df_final: ")
-    df_final.printSchema()        
+    print("Printing Schema of df_detailed: ")
+    df_detailed.printSchema()        
 
 #====================================================================
 #Transform Dataframe 
 #====================================================================
     # Another DataFrame with aggregates - running averages from last 15 seconds
-    summaryDF = df_final \
+    summaryDF_in_process = df_detailed \
         .withColumn("price_volume_multiply", F.col("price") * F.col("volume")) \
         .withWatermark("trade_timestamp", "15 seconds") \
         .groupBy("symbol", F.window("trade_timestamp", "15 seconds")) \
         .agg(F.avg("price_volume_multiply").alias("avg_price_volume_multiply"))
+        
 
-    print("Printing Schema of summaryDF  going to snowflake: ")
-    summaryDF.printSchema()   
+    #print("Printing Schema of summaryDF_in_process  going to snowflake: ")
+    #summaryDF_in_process.printSchema()   
     
     # Rename columns in the DataFrame and add UUIDs before inserting into Cassandra
-    finalSummaryDF = summaryDF \
+    summaryDF = summaryDF_in_process \
         .withColumn("uuid", F.expr("uuid()")) \
         .withColumn("ingest_timestamp", F.current_timestamp()) \
         .withColumnRenamed("avg_price_volume_multiply", "price_volume_multiply")
 
-    print("Printing Schema of finalSummaryDF going to snowflake: ")
-    finalSummaryDF.printSchema()  
+
+    print("Printing Schema of summaryDF going to snowflake: ")
+    summaryDF.printSchema()  
 
            
 #====================================================================
@@ -193,17 +157,19 @@ if __name__ == "__main__":
 #====================================================================
 #Establish Snowflake connection and prep up snowflake for spark input
 #====================================================================
-    tble_strg_1 = 'symbol varchar, window variant, avg_price_volume_multiply double'
-    tble_strg_2 = 'symbol varchar, window variant, price_volume_multiply double, uuid varchar, ingest_timestamp timestamp'
+    tble_strg_1 = 'price float, symbol varchar, trade_timestamp timestamp, volume float,uuid varchar,ingest_timestamp timestamp'
+    tble_strg_2 = 'symbol varchar, window variant, price_volume_multiply float, uuid varchar,ingest_timestamp timestamp'
+
     tble_map_lst = [tble_strg_1, tble_strg_2]
-    tble_nme_lst = [sf_table_finalDF, sf_table_finalSummaryDF]
+    tble_nme_lst = [sf_table_detailedDF, sf_table_finalSummaryDF]
     conn = sfhelp.sf_snowflake_for_spark_setup(tble_nme_lst, tble_map_lst)
 
 #====================================================================
 #Provide Snowflake Connection Details/options
 #====================================================================
-    #sf_pem_private_key = sfkey.sf_get_private_key_uncrypted()
-    sf_pem_private_key = '/opt/spark-app/rsa_key.p8'
+    pem_private_key_filepath = '/opt/spark-app/rsa_key.p8'
+    sf_pem_private_key = sfkey.sf_get_private_key_uncrypted(pem_private_key_filepath)
+    
     # Snowflake connection parameters
     # Replace the placeholders with your Snowflake connection details
     snowflake_options = {
@@ -221,21 +187,19 @@ if __name__ == "__main__":
 #====================================================================
 #Write to console: just testing to see visuals of stream
 #====================================================================
-#    console_finalDF = df_final \
+#    console_detailedDF = df_detailed \
 #    .writeStream \
 #    .outputMode("append") \
 #    .format("console") \
 #    .start()
-#
-#    console_finalDF.awaitTermination()
-#
-#    console_finalSummaryDF = finalSummaryDF \
+#    console_detailedDF.awaitTermination()
+
+#    console_summaryDF = summaryDF \
 #    .writeStream \
 #    .outputMode("append") \
 #    .format("console") \
 #    .start()
-#
-#    console_finalSummaryDF.awaitTermination()
+#    console_summaryDF.awaitTermination()
 
 
 #====================================================================
@@ -245,11 +209,11 @@ if __name__ == "__main__":
            df.write\
                 .format("net.snowflake.spark.snowflake")\
                 .options(**snowflake_options)\
-                .option("dbtable", sf_table_finalDF)\
+                .option("dbtable", sf_table_detailedDF)\
                 .mode('append')\
                 .save()
 
-    def foreach_batch_finalSummaryDF(df, epoch_id):
+    def foreach_batch_summaryDF(df, epoch_id):
            df.write\
                 .format("net.snowflake.spark.snowflake")\
                 .options(**snowflake_options)\
@@ -258,77 +222,29 @@ if __name__ == "__main__":
                 .save()
 
 #====================================================================
-#Write to Snowflake Table option 1
+#Write to Snowflake Table
 #====================================================================
-    query_finalDF = df_final.writeStream.outputMode('append')\
+    query_finalDF = df_detailed.writeStream.outputMode('append')\
         .trigger(processingTime='10 seconds')\
         .option("checkpointLocation", f'{checkpointdir}/finalDF') \
         .foreachBatch(foreach_batch_finalDF)\
+        .outputMode("update")
         .start()
 
-    query_finalSummaryDF = df_final.writeStream.outputMode('append')\
+    query_summaryDF = summaryDF.writeStream.outputMode('append')\
         .trigger(processingTime='10 seconds')\
-        .option("checkpointLocation", f'{checkpointdir}/finalDF') \
-        .foreachBatch(foreach_batch_finalSummaryDF)\
+        .option("checkpointLocation", f'{checkpointdir}/SummDF') \
+        .foreachBatch(foreach_batch_summaryDF)\
+        .outputMode("update")
         .start()        
     
     # Log streaming query details
     logging.info(f"Streaming query details for query_finalDF: {query_finalDF.explain()}")
-    logging.info(f"Streaming query details for query_finalSummaryDF: {query_finalSummaryDF.explain()}")
+    logging.info(f"Streaming query details for query_summaryDF: {query_summaryDF.explain()}")
     
     query_finalDF.awaitTermination()
-    query_finalSummaryDF.awaitTermination()
+    query_summaryDF.awaitTermination()
 
-##====================================================================
-##Write to Snowflake Table option 2
-##====================================================================
-#dataDF.writeStream
-#.option("checkpointLocation", "path-for-checkpoint')
-#.foreachBatch { (batchDF: Dataset[Row], batchId: Long) =>
-#batchDF.write
-#.format("snowflake")
-#.options(sfOptions)
-#.option("dbtable", "demokinesisstream")
-#.mode(SaveMode.Append)
-#.save()
-#}
-
-#https://community.snowflake.com/s/question/0D5Do00000hJGPbKAO/avoid-create-table-if-not-exists-command-using-python-snowflake-connector
-
-
-#    # Write df_final as a stream to Snowflake
-#    query_finalDF = df_final.writeStream \
-#        .outputMode("append") \
-#        .format("net.snowflake.spark.snowflake") \
-#        .options(**snowflake_options) \
-#        .option("dbtable", sf_table_finalDF) \
-#        .option("checkpointLocation", f'{checkpointdir}/finalDF') \
-#        .option("streaming_stage", sf_int_stage)\
-#        .trigger(processingTime='30 seconds')\
-#        .start()
-#
-#    # Log streaming query details
-#    logging.info(f"Streaming query details: {query_finalDF.explain()}")
-#
-#
-#
-#    # Write finalSummaryDF as a stream to Snowflake
-#    query_finalSummaryDF = finalSummaryDF.writeStream \
-#        .outputMode("append") \
-#        .format("net.snowflake.spark.snowflake") \
-#        .options(**snowflake_options) \
-#        .option("dbtable", sf_table_finalSummaryDF) \
-#        .option("checkpointLocation", f'{checkpointdir}/finalSummaryDF') \
-#        .option("streaming_stage", "stream_stage")\
-#        .trigger(processingTime='30 seconds')\
-#        .start()
-#
-#    # Log streaming query details
-#    logging.info(f"Streaming query details: {query_finalSummaryDF.explain()}")
- 
-#    # Await termination of the streaming query
-#    query_finalDF.awaitTermination()
-#    query_finalSummaryDF.awaitTermination()    
 #====================================================================
 # Stop the Spark session
 #====================================================================

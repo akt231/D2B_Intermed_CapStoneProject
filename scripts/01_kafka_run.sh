@@ -9,4 +9,5 @@ docker exec -it broker bash /bin/kafka-console-producer --topic trades --bootstr
 
 #run consumer
 docker exec -it broker bash /bin/kafka-console-consumer --topic trades --bootstrap-server broker:29092 
+
 --from-beginning
