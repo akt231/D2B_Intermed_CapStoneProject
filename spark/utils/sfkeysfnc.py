@@ -13,9 +13,9 @@ import os
 from dotenv import load_dotenv
 load_dotenv() 
 
-def sf_get_private_key_uncrypted():    
+def sf_get_private_key_uncrypted(filepath):    
     sf_pem_pass = os.getenv('sf_pem_pass')
-    with open("/opt/spark-app/rsa_key.p8", "rb") as key_file:
+    with open(filepath, "rb") as key_file:
         p_key = serialization.load_pem_private_key(
         key_file.read(),
         password=f"{sf_pem_pass}".encode(),
@@ -30,5 +30,5 @@ def sf_get_private_key_uncrypted():
     
     pkb = pkb.decode("UTF-8")
     pkb = re.sub("-*(BEGIN|END) PRIVATE KEY-*\n","",pkb).replace("\n","")
-    print(pkb)
+    print(f'pem private key supplied')
     return pkb
