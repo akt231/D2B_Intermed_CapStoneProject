@@ -93,10 +93,13 @@ services:
     ports:
       - "9090:8080"
       - "7077:7077"
+      - "4040:4040"
+      - "18080:18080"
     volumes:
       - sprk_jars:/opt/spark_jars
       - sprk_schemas:/opt/spark-schemas
       - sprk_chkpts:/opt/spark-chkpoint
+      - sprk_eventlog:/opt/spark-eventlog
 
 #  sparkw:
 #    container_name: sparkw
@@ -171,4 +174,9 @@ volumes:
       type: none
       o: bind
       device: ./producer/schemas
-
+  sprk_eventlog:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./spark/eventlog

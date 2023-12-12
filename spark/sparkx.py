@@ -176,27 +176,39 @@ if __name__ == "__main__":
 #====================================================================
 #Write to Snowflake
 #====================================================================
-    def foreach_batch_stream(df, epoch_id):
+    def foreachbatch_table_detailedDFX(df, epoch_id):
            df.write\
                 .format("net.snowflake.spark.snowflake")\
                 .options(**snowflake_options)\
+                .option("dbtable", sf_table_detailedDFX) \
                 .mode('append')\
                 .save()    
 
+    def foreachbatch_table_finalSummaryDFX(df, epoch_id):
+           df.write\
+                .format("net.snowflake.spark.snowflake")\
+                .options(**snowflake_options)\
+                .option("dbtable", sf_table_finalSummaryDFX) \
+                .mode('append')\
+                .save() 
+    
+    print(f'running query stream now')
     query = df_detailed.writeStream\
-        .foreachBatch(foreach_batch_stream)\
-        .option("dbtable", sf_table_detailedDFX) \
+        .foreachBatch(foreachbatch_table_detailedDFX)\
         .option("checkpointLocation",f"/opt/spark-chkpoint/detailedDF")\
         .outputMode("update")\
         .start()
-
+    
+    print(f'running query2 stream now')
     query2 = final_df.writeStream\
         .trigger(processingTime='10 seconds')\
-        .foreachBatch(foreach_batch_stream)\
-        .option("dbtable", sf_table_finalSummaryDFX) \
+        .foreachBatch(foreachbatch_table_finalSummaryDFX)\
         .option("checkpointLocation",f"/opt/spark-chkpoint/finalDF")\
         .outputMode("update")\
         .start()
+    
+    print(f'both query streams have run now')
+    print(f'awaiting termination')
 
     
 #    # Write query to Snowflake for trades
@@ -243,6 +255,7 @@ if __name__ == "__main__":
 #====================================================================
     # Let queries await termination
     spark.streams.awaitAnyTermination()
+    print(f'all streams terminated')
     
 
 
