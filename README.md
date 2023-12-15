@@ -72,21 +72,21 @@ Pem public and private keys need to be also generated for programmatic access to
 ## Pipeline Initiation Steps
 Once containers have been initialized, the following commands need to be executed in the correct order to start the pipeline. This commands can also be found in the unix (linux) shell executables files in the “./scripts” folder
 ### KAFKA 
-**start kafka server**
+**start kafka server:**
 docker exec -it broker bash /bin/kafka-server-start /etc/kafka/server.properties
 
-**start producer for existing topic trades**
+**start producer for existing topic trades:**
 docker exec -it broker bash /bin/kafka-console-producer --topic trades --bootstrap-server broker:29092
 
-**run consumer**
+**run consumer:**
 docker exec -it broker bash /bin/kafka-console-consumer --topic trades --bootstrap-server broker:29092 
 
 ### FINNHUB PRODUCER
-**run the finnhub producer python application**
+**run the finnhub producer python application:**
 docker exec -it producer python ./producer.py
 
 ### SPARK
-**initiate the pyspark applicatinon**
+**initiate the pyspark applicatinon:**
 docker-compose exec sparkm spark-submit --master spark://172.18.0.5:7077 --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0,org.apache.spark:spark-avro_2.12:3.4.0,net.snowflake:spark-snowflake_2.12:2.13.0-spark_3.4 /opt/spark-app/sparkx.py
 
 ## Future Improvements
