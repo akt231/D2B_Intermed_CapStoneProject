@@ -15,8 +15,8 @@ Data is initially obtained using websockets from the Finnhub API. The data obtai
 The avro serialized data is deserialized by Pyspark and transformation is applied to the data. The transformed data is then streamed in micro batches to Snowflake where it is used to populate Snowflake tables.
 
 ## Data Pipeline Architecture
-The diagram above is the schematic diagram depicting the pipeline's architecture.
-{picture of project as a layered application}
+The diagram below is the schematic diagram depicting the pipeline's architecture/layering.
+## {picture of project as a layered application}
 All applications are containerized into Docker containers.
 
 Data ingestion layer – A containerized Python application called FinnhubProducer connects to Finnhub.io websocket. The application retrieves trade data via websocket and encodes the data into Avro format as specified by the schema contained in the trades.avsc file. This data is ingested by the Kafka broker.
