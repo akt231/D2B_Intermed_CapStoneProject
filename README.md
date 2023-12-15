@@ -30,9 +30,13 @@ Serving database layer - a Snowflake database stores & persists data for the two
 
 ## Tech. Stack
 •	[Github](https://github.com/): To host our source code as well as for CI/CD with Github Actions
+
 •	[Docker](https://www.docker.com/): To containerize our code
+
 •	[Kafka](https://kafka.apache.org/):  used to build real-time streaming data pipelines and applications that adapt to the data streams.
+
 •	[Spark](https://spark.apache.org/docs/latest/quick-start.html): used for fast, interactive computation that runs in memory, used here specifically for data processing (data transformation step), Spark is chosen because of its parellel processing capabilities. Should the amount of data proliferate to 100x, more worker nodes can be added to the spark cluster to scale out.
+
 •	[Snowflake](https://www.snowflake.com/en/): used for data storage, processing, and analytic solutions 
 
 ## Project Requirement/Setup
