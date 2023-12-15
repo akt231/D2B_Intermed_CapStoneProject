@@ -96,16 +96,28 @@ docker-compose exec sparkm spark-submit --master spark://172.18.0.5:7077 --packa
 
 ## Future Improvements
 **CLOUD DEPLOYMENT**
+
 The pipeline can also be deployed on the cloud and its infrastructure can also be managed via terraform
+
 **SCALING UP**
+
 We can use a spark cluster instead of running the spark application in local mode, we can also increase the number of worker nodes on the spark cluster, to improve performance of compute.
+
 **ADDITION OF VISUALIZATION LAYER**
+
 A Visualization layer using visualization softwares i.e. Grafana, OpenSearch, PowerBI or tablaeau can be connected to the Snowflake database and used to serve visualized data to users in the form of a dashboard. The dashboard can be refreshed as specified by the user.
+
 **DEVELOPING CI/CD PIPELINE/TESTING**
+
 The program can be further improved using Kubernetes and terraform, pipeline testing would also be a desirable improvement before deploying pipeline to the cloud
 **DEPLOYMENT OF KAFKA AS STATEFULSETS**
+
 Kafka is currently configured to be a standard local deployments. However, implementing kafka as StatefulSets in kubernetics would be desired in order to improve its scalability and reliability at scale.
+
 **SUPPORT FOR DIFFERENT ENVIRONMENTS**
+
 Support can also be added for different environments i.e. development, staging, production
+
 **OTHER DATA SOURCES**
+
 The possibility of using other ticker/trade data sources apart from finnhub can also be considered
