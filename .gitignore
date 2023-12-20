@@ -163,9 +163,24 @@ cython_debug/
 
 
 #user logs
-kafka/logs/kafka-data/
+kafka/logs/kafka-data/*
+!kafka/logs/kafka-data/__init__.py
+
 kafka/logs/zk-data/
-kafka/logs/zk-txn-logs/
+!kafka/logs/zk-data/__init__.py
+
+kafka/logs/zk-txn-logs/*
+!kafka/logs/zk-txn-logs/__init__.py
+
+spark/eventlog/*
+!spark/eventlog/__init__.py
+
+spark/chkpt/*
+!spark/chkpt/__init__.py
+
+spark/jars/*
+!spark/jars/__init__.py
+
 rsa_key.pem
 rsa_key.pub
 spark/chkpt/*
