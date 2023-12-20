@@ -29,7 +29,7 @@ The first query is used to transform the trades data into a dataframe which is s
 **Serving database layer** - a Snowflake database stores & persists data for the two queries from the Spark application. 
 
 ## Tech. Stack
-•	[Github](https://github.com/): To host our source code as well as for CI/CD with Github Actions
+•	[Github](https://github.com/): To host our source code
 
 •	[Docker](https://www.docker.com/): To containerize our code
 
