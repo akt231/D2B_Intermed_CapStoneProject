@@ -19,9 +19,7 @@ RUN pip3 install --upgrade pip
 
 WORKDIR /opt/spark-app
 COPY ./spark/start-spark.sh .
-COPY ./spark/sparkstreaming.py .
 COPY ./spark/sparkx.py .
-COPY ./spark/test.py .
 COPY .env .
 COPY requirements_spark.txt .
 COPY ./rsa_key.p8 .
