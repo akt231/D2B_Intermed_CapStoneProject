@@ -74,11 +74,15 @@ Once containers have been initialized, the following commands need to be execute
 ### KAFKA 
 **start kafka server:**
 
-'''docker exec -it broker bash /bin/kafka-server-start /etc/kafka/server.properties'''
+```
+docker exec -it broker bash /bin/kafka-server-start /etc/kafka/server.properties
+```
 
 **start producer for existing topic trades:**
 
-'''docker exec -it broker bash /bin/kafka-console-producer --topic trades --bootstrap-server broker:29092'''
+'''
+docker exec -it broker bash /bin/kafka-console-producer --topic trades --bootstrap-server broker:29092
+'''
 
 **run consumer:**
 
