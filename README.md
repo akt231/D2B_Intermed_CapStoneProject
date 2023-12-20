@@ -15,18 +15,18 @@ Data is initially obtained using websockets from the Finnhub API. The data obtai
 The avro serialized data is deserialized by Pyspark and transformation is applied to the data. The transformed data is then streamed in micro batches to Snowflake where it is used to populate Snowflake tables.
 
 ## Data Pipeline Architecture
-The diagram below is the schematic diagram depicting the pipeline's architecture/layering.
-## {picture of project as a layered application}
+The diagram above is the schematic diagram depicting the pipeline's architecture/layering.
+
 All applications are containerized into Docker containers.
 
-Data ingestion layer – A containerized Python application called FinnhubProducer connects to Finnhub.io websocket. The application retrieves trade data via websocket and encodes the data into Avro format as specified by the schema contained in the trades.avsc file. This data is ingested by the Kafka broker.
+**Data ingestion layer** – A containerized Python application called FinnhubProducer connects to Finnhub.io websocket. The application retrieves trade data via websocket and encodes the data into Avro format as specified by the schema contained in the trades.avsc file. This data is ingested by the Kafka broker.
 
-Message broker layer - messages from FinnhubProducer are consumed by the Kafka broker. “./kafka/scripts/kafka_create_topic.sh” script is initiated at the kafka container startup, this script creates the required topic used to stream the data. The Zookeeper container is launched before Kafka as it is required for its metadata management.
+**Message broker layer** - messages from FinnhubProducer are consumed by the Kafka broker. “./kafka/scripts/kafka_create_topic.sh” script is initiated at the kafka container startup, this script creates the required topic used to stream the data. The Zookeeper container is launched before Kafka as it is required for its metadata management.
 
-Stream processing layer - a Spark docker container is initiated for processing of the data from Kafka. A PySpark application called SparkX is submitted into Spark cluster manager via local mode, the setup can be extended/scaled via docker containers to use cluster mode that can delegate worker(s) for more intensive applications. This application connects to the Kafka broker to retrieve messages, transform them using Spark Structured Streaming, and loads into Snowflake tables. 
+**Stream processing layer** - a Spark docker container is initiated for processing of the data from Kafka. A PySpark application called SparkX is submitted into Spark cluster manager via local mode, the setup can be extended/scaled via docker containers to use cluster mode that can delegate worker(s) for more intensive applications. This application connects to the Kafka broker to retrieve messages, transform them using Spark Structured Streaming, and loads into Snowflake tables. 
 The first query is used to transform the trades data into a dataframe which is streamed continuously into snowflake while the second query aggregates the data and streams the data using a timed trigger
 
-Serving database layer - a Snowflake database stores & persists data for the two queries from the Spark application. 
+**Serving database layer** - a Snowflake database stores & persists data for the two queries from the Spark application. 
 
 ## Tech. Stack
 •	[Github](https://github.com/): To host our source code as well as for CI/CD with Github Actions
@@ -46,16 +46,16 @@ Pem public and private keys need to be also generated for programmatic access to
 ## SECRETS
 |Secret Variable Name       |Variable Description                                           |
 |:--------------------------|:--------------------------------------------------------------|
-|FINNHUB SECRETS                                                                           |
+|**FINNHUB SECRETS**                                                                           |
 |d2b_finnhubio_user_name    |#user name used when registering a finnhub account             |
 |d2b_finnhubio_user_email   |#user email used when registering a finnhub account            |
 |d2b_token_finnhubio	    |#user token provided by finnhub on registering finnhub account |
 |d2b_tickers_finnhubio	    |#List of Trading pairs to obtain data for i.e['BINANCE:BTCUSDT', 'BINANCE:ETHUSDT', 'BINANCE:XRPUSDT', 'BINANCE:DOGEUSDT' ]|
-|KAFKA SECRETS                                                                             |
+|**KAFKA SECRETS**                                                                             |
 |d2b_kafka_server|          |#name of  client/listener in kafka docker container i.e. localhost or broker|
 |d2b_kafka_port	            |#Kafka server port used for listening for streamed data        |
 |d2b_kafka_producer_topic   |#kafka topic used for streamed data                            |
-|SNOWFLAKE SECRETS                                                                         |	
+|**SNOWFLAKE SECRETS**                                                                         |	
 |sf_account                 |Snowflake account identifier i.e. 'vbctxic-tq01322'            |
 |sf_url                     |url of snowflake account i.e. 'https://vbctxic-tq01322.snowflakecomputing.com/' |
 |sf_database                |	Snowflake Database Name                                     |
@@ -74,11 +74,11 @@ Once containers have been initialized, the following commands need to be execute
 ### KAFKA 
 **start kafka server:**
 
-docker exec -it broker bash /bin/kafka-server-start /etc/kafka/server.properties
+'''docker exec -it broker bash /bin/kafka-server-start /etc/kafka/server.properties'''
 
 **start producer for existing topic trades:**
 
-docker exec -it broker bash /bin/kafka-console-producer --topic trades --bootstrap-server broker:29092
+'''docker exec -it broker bash /bin/kafka-console-producer --topic trades --bootstrap-server broker:29092'''
 
 **run consumer:**
 
