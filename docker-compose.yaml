@@ -98,7 +98,7 @@ services:
     volumes:
       - sprk_jars:/opt/spark_jars
       - sprk_schemas:/opt/spark-schemas
-      - sprk_chkpts:/opt/spark-chkpoint
+      - sprk_chkpts:/opt/spark-chkpoint 
       - sprk_eventlog:/opt/spark-eventlog
 
 #  sparkw:

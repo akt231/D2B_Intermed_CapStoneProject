@@ -35,6 +35,8 @@ RUN chmod +rwx /opt/spark-app/*
 RUN chmod 775 /opt/spark-app/*
 RUN chmod 775 /opt/spark-app/rsa_key.p8
 
+#RUN chown 1001:1001 -R /opt/spark-chkpoint/*
+
 USER 1001
 
 ENV PYTHONUNBUFFERED 1

@@ -256,6 +256,7 @@ if __name__ == "__main__":
     # Let queries await termination
     spark.streams.awaitAnyTermination()
     print(f'all streams terminated')
+    print(f'We are done!!!! Bye')    
     
 
 

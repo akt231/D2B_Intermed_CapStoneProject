@@ -32,7 +32,7 @@ docker-compose exec sparkm spark-submit --master spark://172.18.0.5:7077 --packa
 #chown -hR <username>:<groupname> <folder>
   
 #deleting the checkpoint folder files
-cd /home/akt/projects.files/projects.git/git.personalD2B_Intermed_CapStoneProject/spark/chkpt
+cd /home/akt/projects.files/projects.git/git.personal/D2B_Intermed_CapStoneProject
 sudo chattr -a ./spark/chkpt/*
-sudo chown -hR akt:akt ./spark/chkpt/*
+sudo chown -hR 1001:1001 ./spark/chkpt/*
 rm -rf ./spark/chkpt/*
